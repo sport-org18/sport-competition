@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Регистрация на соревнования</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            width: 100%;
+            max-width: 500px;
+            padding: 40px;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            text-align: center;
+            font-size: 28px;
+        }
+        
+        .comp-name {
+            text-align: center;
+            color: #667eea;
+            margin-bottom: 30px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+        }
+        
+        .required:after {
+            content: " *";
+            color: red;
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        input[readonly] {
+            background-color: #f5f5f5;
+            cursor: not-allowed;
+        }
+        
+        button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+        }
+        
+        button:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .message {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            display: none;
+        }
+        
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        .loading {
+            text-align: center;
+            margin: 20px 0;
+            color: #667eea;
+            font-weight: 500;
+        }
+        
+        .category-auto {
+            font-size: 12px;
+            color: #27ae60;
+            margin-top: 5px;
+        }
+        
+        .footer-note {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 12px;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Регистрация на соревнования</h1>
+        <div id="compNameDisplay" class="comp-name"></div>
+        
+        <form id="registrationForm">
+            <div class="form-group">
+                <label for="name" class="required">ФИО участника</label>
+                <input type="text" id="name" name="name" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="email" class="required">Email</label>
+                <input type="email" id="email" name="email" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="birthdate" class="required">Дата рождения</label>
+                <input type="date" id="birthdate" name="birthdate" required onchange="calculateCategory()">
+                <div id="categoryAuto" class="category-auto"></div>
+            </div>
+            
+            <div class="form-group">
+                <label for="category">Категория (определяется автоматически)</label>
+                <input type="text" id="category" name="category" readonly placeholder="Будет определена по возрасту">
+            </div>
+            
+            <div class="form-group">
+                <label for="team">Команда/Клуб</label>
+                <input type="text" id="team" name="team">
+            </div>
+            
+            <div class="form-group">
+                <label for="competition" class="required">Название соревнования</label>
+                <input type="text" id="competition" name="competition" readonly>
+            </div>
+            
+            <button type="submit" id="submitBtn">Зарегистрироваться</button>
+        </form>
+        
+        <div id="message" class="message"></div>
+        <div id="loading" class="loading" style="display: none;">⏳ Отправка данных...</div>
+        
+        <div class="footer-note">
+            После регистрации вы получите подтверждение на email
+        </div>
+    </div>
+
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+    
+    <script>
+        let currentCompetition = null;
+        let ageCategories = [];
+        
+        // Получаем ID соревнования из URL
+        function getCompetitionIdFromUrl() {
+            const params = new URLSearchParams(window.location.search);
+            return parseInt(params.get('comp'));
+        }
+        
+        // Загружаем данные соревнования
+        function loadCompetition() {
+            const compId = getCompetitionIdFromUrl();
+            if (!compId) {
+                showError('Ссылка на регистрацию недействительна');
+                return false;
+            }
+            
+            const competitions = JSON.parse(localStorage.getItem('competitions') || '[]');
+            currentCompetition = competitions.find(c => c.id === compId);
+            
+            if (!currentCompetition) {
+                showError('Соревнование не найдено');
+                return false;
+            }
+            
+            ageCategories = currentCompetition.ageCategories;
+            document.getElementById('compNameDisplay').innerHTML = `🏆 ${currentCompetition.name}`;
+            document.getElementById('competition').value = currentCompetition.name;
+            return true;
+        }
+        
+        // Автоматическое определение категории по возрасту
+        function calculateCategory() {
+            const birthdate = document.getElementById('birthdate').value;
+            const categoryInput = document.getElementById('category');
+            const categoryAutoDiv = document.getElementById('categoryAuto');
+            
+            if (!birthdate) {
+                categoryInput.value = '';
+                categoryAutoDiv.innerHTML = '';
+                return;
+            }
+            
+            const birthDate = new Date(birthdate);
+            const today = new Date();
+            let age = today.getFullYear() - birthDate.getFullYear();
+            const monthDiff = today.getMonth() - birthDate.getMonth();
+            if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+                age--;
+            }
+            
+            categoryAutoDiv.innerHTML = `📊 Возраст: ${age} лет`;
+            
+            // Ищем подходящую категорию
+            const matchedCategory = ageCategories.find(cat => age >= cat.min && age <= cat.max);
+            
+            if (matchedCategory) {
+                categoryInput.value = matchedCategory.name;
+                categoryAutoDiv.innerHTML += ` → Категория: ${matchedCategory.name}`;
+            } else {
+                categoryInput.value = 'Не определена';
+                categoryAutoDiv.innerHTML += ` → Категория не найдена (допустимые: ${ageCategories.map(c => `${c.min}-${c.max}`).join(', ')})`;
+            }
+        }
+        
+        function showError(message) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.className = 'message error';
+            messageDiv.textContent = message;
+            messageDiv.style.display = 'block';
+            document.getElementById('submitBtn').disabled = true;
+        }
+        
+        // Отправка формы
+        document.getElementById('registrationForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const messageDiv = document.getElementById('message');
+            const loadingDiv = document.getElementById('loading');
+            const submitBtn = document.getElementById('submitBtn');
+            
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            const birthdate = document.getElementById('birthdate').value;
+            const category = document.getElementById('category').value;
+            const team = document.getElementById('team').value;
+            const competitionName = document.getElementById('competition').value;
+            
+            if (!birthdate) {
+                alert('Укажите дату рождения');
+                return;
+            }
+            
+            if (category === 'Не определена') {
+                alert('Ваш возраст не подходит ни под одну категорию соревнований');
+                return;
+            }
+            
+            submitBtn.disabled = true;
+            loadingDiv.style.display = 'block';
+            messageDiv.style.display = 'none';
+            
+            const formData = {
+                id: Date.now(),
+                competitionId: currentCompetition.id,
+                name: name,
+                email: email,
+                birthdate: birthdate,
+                category: category,
+                team: team,
+                competition: competitionName,
+                place: 'Не определено',
+                registeredAt: new Date().toLocaleString(),
+                certificateGenerated: false
+            };
+            
+            try {
+                // Сохраняем в localStorage
+                let participants = JSON.parse(localStorage.getItem('participants') || '[]');
+                participants.push(formData);
+                localStorage.setItem('participants', JSON.stringify(participants));
+                
+                // Отправляем email
+                const savedSettings = JSON.parse(localStorage.getItem('emailSettings') || '{}');
+                if (savedSettings.serviceId && savedSettings.registrationTemplateId && savedSettings.publicKey) {
+                    emailjs.init(savedSettings.publicKey);
+                    await emailjs.send(savedSettings.serviceId, savedSettings.registrationTemplateId, {
+                        name: name,
+                        competition: competitionName,
+                        to_email: email
+                    });
+                }
+                
+                messageDiv.className = 'message success';
+                messageDiv.textContent = '✅ Регистрация успешно завершена! Подтверждение отправлено на email.';
+                messageDiv.style.display = 'block';
+                this.reset();
+                document.getElementById('competition').value = competitionName;
+                
+            } catch (error) {
+                console.error(error);
+                messageDiv.className = 'message error';
+                messageDiv.textContent = '❌ Ошибка при регистрации';
+                messageDiv.style.display = 'block';
+            } finally {
+                submitBtn.disabled = false;
+                loadingDiv.style.display = 'none';
+            }
+        });
+        
+        // Инициализация
+        if (!loadCompetition()) {
+            document.getElementById('submitBtn').disabled = true;
+        }
+        
+        // Добавляем обработку Enter
+        document.getElementById('birthdate').addEventListener('change', calculateCategory);
+    </script>
+</body>
+</html>
