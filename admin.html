@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Панель администратора</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         * {
             margin: 0;
@@ -11,239 +12,33 @@
             box-sizing: border-box;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
         }
-        
-        body {
-            background: #f5f5f5;
-            padding: 20px;
-        }
-        
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        
-        h1 {
-            color: #333;
-            margin-bottom: 20px;
-        }
-        
-        .tab-menu {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-        
-        .tab {
-            padding: 10px 20px;
-            background: white;
-            border-radius: 5px;
-            cursor: pointer;
-            border: none;
-            font-size: 16px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-        
-        .tab.active {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-        
-        .card {
-            background: white;
-            border-radius: 10px;
-            padding: 25px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        
-        .form-group {
-            margin-bottom: 20px;
-        }
-        
-        label {
-            display: block;
-            margin-bottom: 8px;
-            color: #555;
-            font-weight: 500;
-        }
-        
-        input, select, textarea {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 16px;
-        }
-        
-        input:focus, select:focus, textarea:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-        
-        .btn {
-            padding: 10px 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 14px;
-        }
-        
-        .btn-danger {
-            background: #e74c3c;
-        }
-        
-        .btn-success {
-            background: #27ae60;
-        }
-        
-        .competition-card {
-            border: 1px solid #e0e0e0;
-            border-radius: 10px;
-            padding: 15px;
-            margin-bottom: 15px;
-            transition: all 0.2s;
-        }
-        
-        .competition-card:hover {
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        }
-        
-        .competition-title {
-            font-size: 18px;
-            font-weight: bold;
-            color: #333;
-        }
-        
-        .competition-link {
-            font-size: 12px;
-            color: #667eea;
-            word-break: break-all;
-            margin-top: 8px;
-        }
-        
-        .competition-link a {
-            color: #667eea;
-            text-decoration: none;
-        }
-        
-        .stats {
-            font-size: 14px;
-            color: #666;
-            margin-top: 10px;
-        }
-        
-        .age-category {
-            background: #f8f9fa;
-            padding: 10px;
-            border-radius: 5px;
-            margin-top: 10px;
-        }
-        
-        .age-category-item {
-            display: inline-block;
-            background: #e9ecef;
-            padding: 5px 10px;
-            border-radius: 15px;
-            margin: 3px;
-            font-size: 12px;
-        }
-        
-        .table-container {
-            overflow-x: auto;
-        }
-        
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        
-        th, td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #eee;
-        }
-        
-        th {
-            background: #f8f9fa;
-            font-weight: 600;
-        }
-        
-        .place-input {
-            width: 80px;
-            padding: 5px;
-        }
-        
-        .status-badge {
-            padding: 3px 8px;
-            border-radius: 12px;
-            font-size: 11px;
-            font-weight: 500;
-        }
-        
-        .status-sent {
-            background: #d4edda;
-            color: #155724;
-        }
-        
-        .status-pending {
-            background: #fff3cd;
-            color: #856404;
-        }
-        
-        .message {
-            padding: 15px;
-            border-radius: 10px;
-            margin-top: 20px;
-            display: none;
-        }
-        
-        .message.success {
-            background: #d4edda;
-            color: #155724;
-            display: block;
-        }
-        
-        .message.error {
-            background: #f8d7da;
-            color: #721c24;
-            display: block;
-        }
-        
-        .flex-row {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-        
-        .back-link {
-            margin-top: 20px;
-            text-align: center;
-        }
-        
-        .back-link a {
-            color: #667eea;
-            text-decoration: none;
-        }
-        
-        .notification {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background: #27ae60;
-            color: white;
-            padding: 12px 20px;
-            border-radius: 8px;
-            display: none;
-            z-index: 1000;
-            animation: fadeIn 0.3s;
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+        body { background: #f5f5f5; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        h1 { color: #333; margin-bottom: 20px; }
+        .tab-menu { display: flex; gap: 10px; margin-bottom: 20px; }
+        .tab { padding: 10px 20px; background: white; border-radius: 5px; cursor: pointer; border: none; font-size: 16px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .tab.active { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        .card { background: white; border-radius: 10px; padding: 25px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; color: #555; font-weight: 500; }
+        input, select { width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 16px; }
+        .btn { padding: 10px 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; }
+        .btn-danger { background: #e74c3c; }
+        .btn-success { background: #27ae60; }
+        .competition-card { border: 1px solid #e0e0e0; border-radius: 10px; padding: 15px; margin-bottom: 15px; }
+        .competition-title { font-size: 18px; font-weight: bold; }
+        .stats { font-size: 14px; color: #666; margin-top: 10px; }
+        .age-category-item { display: inline-block; background: #e9ecef; padding: 5px 10px; border-radius: 15px; margin: 3px; font-size: 12px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
+        th { background: #f8f9fa; }
+        .place-input { width: 80px; padding: 5px; }
+        .status-badge { padding: 3px 8px; border-radius: 12px; font-size: 11px; background: #d4edda; color: #155724; }
+        .flex-row { display: flex; gap: 10px; flex-wrap: wrap; }
+        .message { padding: 15px; border-radius: 10px; margin-top: 20px; display: none; }
+        .message.success { background: #d4edda; color: #155724; display: block; }
+        .message.error { background: #f8d7da; color: #721c24; display: block; }
+        .loading { text-align: center; padding: 20px; color: #667eea; }
     </style>
 </head>
 <body>
@@ -251,40 +46,53 @@
         <h1>🏆 Панель администратора</h1>
         
         <div class="tab-menu">
-            <button class="tab active" onclick="showTab('competitions')">Соревнования</button>
+            <button class="tab active" onclick="showTab('supabase')">Настройки БД</button>
+            <button class="tab" onclick="showTab('competitions')">Соревнования</button>
             <button class="tab" onclick="showTab('results')">Результаты</button>
-            <button class="tab" onclick="showTab('settings')">Настройки Email</button>
         </div>
         
-        <!-- Вкладка: Соревнования -->
-        <div id="competitions-tab">
+        <!-- Вкладка настройки Supabase -->
+        <div id="supabase-tab">
+            <div class="card">
+                <h3>🔗 Настройки подключения к Supabase</h3>
+                <div class="form-group">
+                    <label>Supabase URL</label>
+                    <input type="text" id="supabaseUrl" placeholder="https://xxxxx.supabase.co">
+                </div>
+                <div class="form-group">
+                    <label>Supabase anon public key</label>
+                    <input type="text" id="supabaseKey" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...">
+                </div>
+                <button class="btn btn-success" onclick="initSupabase()">Подключиться</button>
+                <div id="connStatus" class="message"></div>
+            </div>
+        </div>
+        
+        <!-- Вкладка Соревнования -->
+        <div id="competitions-tab" style="display: none;">
             <div class="card">
                 <h3>➕ Создать новое соревнование</h3>
                 <div class="form-group">
                     <label>Название соревнования *</label>
-                    <input type="text" id="newCompName" placeholder="Например: Весенний забег 2024">
+                    <input type="text" id="newCompName" placeholder="Весенний забег 2024">
                 </div>
                 <div class="form-group">
                     <label>Дата проведения *</label>
                     <input type="date" id="newCompDate">
                 </div>
                 <div class="form-group">
-                    <label>Ссылка на страницу получения грамоты (участники будут скачивать здесь)</label>
+                    <label>Ссылка на страницу получения грамоты</label>
                     <input type="text" id="certificatePageUrl" placeholder="https://ваш-сайт/participant.html">
-                    <div class="stats" style="margin-top: 5px;">Эту ссылку получит участник в письме</div>
                 </div>
                 <div class="form-group">
-                    <label>Возрастные категории (автоматическое определение)</label>
-                    <div class="age-category">
-                        <div class="flex-row" style="margin-bottom: 10px;">
-                            <input type="number" id="catMin1" placeholder="Мин. возраст" style="width: 100px;">
-                            <span>—</span>
-                            <input type="number" id="catMax1" placeholder="Макс. возраст" style="width: 100px;">
-                            <input type="text" id="catName1" placeholder="Название категории" style="flex: 1;">
-                            <button onclick="addAgeCategory()" class="btn" style="width: auto;">+</button>
-                        </div>
-                        <div id="ageCategoriesList"></div>
+                    <label>Возрастные категории</label>
+                    <div class="flex-row" style="margin-bottom: 10px;">
+                        <input type="number" id="catMin" placeholder="Мин" style="width: 80px;">
+                        <input type="number" id="catMax" placeholder="Макс" style="width: 80px;">
+                        <input type="text" id="catName" placeholder="Название" style="flex:1;">
+                        <button onclick="addAgeCategory()" class="btn">+</button>
                     </div>
+                    <div id="ageCategoriesList"></div>
                 </div>
                 <button class="btn btn-success" onclick="createCompetition()">Создать соревнование</button>
             </div>
@@ -295,537 +103,172 @@
             </div>
         </div>
         
-        <!-- Вкладка: Результаты -->
+        <!-- Вкладка Результаты -->
         <div id="results-tab" style="display: none;">
             <div class="card">
                 <h3>Выберите соревнование</h3>
                 <select id="selectCompetition" onchange="loadParticipantsForResults()" style="margin-bottom: 20px;">
-                    <option value="">-- Выберите соревнование --</option>
+                    <option value="">-- Выберите --</option>
                 </select>
-                
                 <div id="resultsStats" class="stats"></div>
-                
                 <div class="table-container">
                     <table id="resultsTable">
-                        <thead>
-                            <tr>
-                                <th>ФИО</th>
-                                <th>Email</th>
-                                <th>Дата рождения</th>
-                                <th>Категория</th>
-                                <th>Место</th>
-                                <th>Статус письма</th>
-                            </tr>
-                        </thead>
-                        <tbody id="resultsTableBody">
-                            <tr><td colspan="6">Выберите соревнование</td></tr>
-                        </tbody>
+                        <thead><tr><th>ФИО</th><th>Email</th><th>Дата рождения</th><th>Категория</th><th>Место</th></tr></thead>
+                        <tbody id="resultsTableBody"></tbody>
                     </table>
                 </div>
-                
-                <div class="flex-row" style="margin-top: 20px;">
-                    <button class="btn" onclick="exportResultsToCSV()">📥 Экспорт CSV</button>
-                    <button class="btn" onclick="generateAllCertificates()">📄 Открыть все грамоты</button>
-                </div>
+                <button class="btn" onclick="exportResultsToCSV()">📥 Экспорт CSV</button>
             </div>
-        </div>
-        
-        <!-- Вкладка: Настройки Email -->
-        <div id="settings-tab" style="display: none;">
-            <div class="card">
-                <h3>📧 Настройки EmailJS</h3>
-                <div class="form-group">
-                    <label>Service ID:</label>
-                    <input type="text" id="serviceId" placeholder="service_abc123">
-                </div>
-                <div class="form-group">
-                    <label>Template ID (для уведомления о результате):</label>
-                    <input type="text" id="resultTemplateId" placeholder="template_xyz789">
-                    <div class="stats" style="margin-top: 5px;">Шаблон должен содержать поля: {{name}}, {{competition}}, {{place}}, {{link}}, {{to_email}}</div>
-                </div>
-                <div class="form-group">
-                    <label>Public Key:</label>
-                    <input type="text" id="publicKey" placeholder="user_abcdef123">
-                </div>
-                <button class="btn" onclick="saveEmailSettings()">💾 Сохранить настройки</button>
-                <button class="btn" onclick="testEmail()">📧 Тест отправки</button>
-                <div id="emailMessage" class="message"></div>
-            </div>
-        </div>
-        
-        <div class="back-link">
-            <a href="#" onclick="openRegistrationLink()">🔗 Посмотреть ссылки на регистрацию</a>
         </div>
     </div>
-    
-    <div id="notification" class="notification"></div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
-    
     <script>
-        // ============ ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ============
-        let competitions = [];
-        let participants = [];
-        let currentCompetitionId = null;
-        let ageCategoriesList = [];
+        let supabaseClient = null;
+        let competitionsList = [];
+        let participantsList = [];
+        let ageCategoriesBuffer = [];
         
-        // ============ ЗАГРУЗКА ДАННЫХ ============
-        function loadData() {
-            competitions = JSON.parse(localStorage.getItem('competitions') || '[]');
-            participants = JSON.parse(localStorage.getItem('participants') || '[]');
+        function initSupabase() {
+            const url = document.getElementById('supabaseUrl').value.trim();
+            const key = document.getElementById('supabaseKey').value.trim();
+            
+            if (!url || !key) {
+                alert('Введите URL и anon key');
+                return;
+            }
+            
+            supabaseClient = supabase.createClient(url, key);
+            localStorage.setItem('supabase_url', url);
+            localStorage.setItem('supabase_key', key);
+            
+            document.getElementById('connStatus').className = 'message success';
+            document.getElementById('connStatus').textContent = '✅ Подключено! Теперь можете работать с соревнованиями.';
+            document.getElementById('connStatus').style.display = 'block';
+            
+            loadCompetitions();
+        }
+        
+        function loadSavedSettings() {
+            const url = localStorage.getItem('supabase_url');
+            const key = localStorage.getItem('supabase_key');
+            if (url && key) {
+                document.getElementById('supabaseUrl').value = url;
+                document.getElementById('supabaseKey').value = key;
+                supabaseClient = supabase.createClient(url, key);
+                loadCompetitions();
+            }
+        }
+        
+        async function loadCompetitions() {
+            if (!supabaseClient) return;
+            const { data, error } = await supabaseClient.from('competitions').select('*').order('created_at', { ascending: false });
+            if (error) { console.error(error); return; }
+            competitionsList = data || [];
             updateCompetitionsList();
             updateCompetitionSelect();
         }
         
-        // ============ СОЗДАНИЕ СОРЕВНОВАНИЯ ============
-        function addAgeCategory() {
-            const minAge = document.getElementById('catMin1').value;
-            const maxAge = document.getElementById('catMax1').value;
-            const name = document.getElementById('catName1').value;
-            
-            if (!minAge || !maxAge || !name) {
-                alert('Заполните все поля категории');
-                return;
-            }
-            
-            ageCategoriesList.push({ min: parseInt(minAge), max: parseInt(maxAge), name: name });
-            
-            document.getElementById('catMin1').value = '';
-            document.getElementById('catMax1').value = '';
-            document.getElementById('catName1').value = '';
-            
-            updateAgeCategoriesList();
-        }
-        
-        function updateAgeCategoriesList() {
-            const container = document.getElementById('ageCategoriesList');
-            container.innerHTML = ageCategoriesList.map((cat, idx) => `
-                <div class="age-category-item">
-                    ${cat.min}-${cat.max} лет: ${cat.name}
-                    <button onclick="removeAgeCategory(${idx})" style="background: none; border: none; color: red; cursor: pointer;">✖</button>
-                </div>
-            `).join('');
-        }
-        
-        function removeAgeCategory(idx) {
-            ageCategoriesList.splice(idx, 1);
-            updateAgeCategoriesList();
-        }
-        
-        function createCompetition() {
-            const name = document.getElementById('newCompName').value.trim();
-            const date = document.getElementById('newCompDate').value;
-            const certificatePageUrl = document.getElementById('certificatePageUrl').value.trim();
-            
-            if (!name) {
-                alert('Введите название соревнования');
-                return;
-            }
-            
-            if (!date) {
-                alert('Введите дату проведения');
-                return;
-            }
-            
-            if (ageCategoriesList.length === 0) {
-                alert('Добавьте хотя бы одну возрастную категорию');
-                return;
-            }
-            
-            const newComp = {
-                id: Date.now(),
-                name: name,
-                date: date,
-                certificatePageUrl: certificatePageUrl || '',
-                ageCategories: [...ageCategoriesList],
-                createdAt: new Date().toISOString()
-            };
-            
-            competitions.push(newComp);
-            localStorage.setItem('competitions', JSON.stringify(competitions));
-            
-            document.getElementById('newCompName').value = '';
-            document.getElementById('newCompDate').value = '';
-            document.getElementById('certificatePageUrl').value = '';
-            ageCategoriesList = [];
-            updateAgeCategoriesList();
-            
-            loadData();
-            showNotification(`Соревнование "${name}" создано!`);
-        }
-        
         function updateCompetitionsList() {
             const container = document.getElementById('competitionsList');
-            
-            if (competitions.length === 0) {
-                container.innerHTML = '<p style="color: #888;">Нет созданных соревнований</p>';
-                return;
-            }
-            
-            container.innerHTML = competitions.map(comp => {
-                const participantsCount = participants.filter(p => p.competitionId === comp.id).length;
-                const registrationLink = `${window.location.origin}${window.location.pathname.replace('admin.html', '')}register.html?comp=${comp.id}`;
-                
-                return `
-                    <div class="competition-card">
-                        <div class="competition-title">🏅 ${comp.name}</div>
-                        <div class="stats">📅 Дата: ${comp.date} | 👥 Участников: ${participantsCount}</div>
-                        <div class="competition-link">
-                            🔗 Ссылка для регистрации: 
-                            <a href="#" onclick="copyToClipboard('${registrationLink}'); return false;">${registrationLink}</a>
-                            <button onclick="copyToClipboard('${registrationLink}')" style="margin-left: 10px;">📋 Копировать</button>
-                        </div>
-                        <div class="age-category" style="margin-top: 10px;">
-                            📊 Возрастные категории: ${comp.ageCategories.map(c => `${c.min}-${c.max} лет: ${c.name}`).join(' | ')}
-                        </div>
-                        <button class="btn" onclick="deleteCompetition(${comp.id})" style="margin-top: 10px; background: #e74c3c;">Удалить</button>
-                    </div>
-                `;
-            }).join('');
-        }
-        
-        function deleteCompetition(id) {
-            if (confirm('Удалить соревнование? Все данные участников будут удалены!')) {
-                competitions = competitions.filter(c => c.id !== id);
-                participants = participants.filter(p => p.competitionId !== id);
-                localStorage.setItem('competitions', JSON.stringify(competitions));
-                localStorage.setItem('participants', JSON.stringify(participants));
-                loadData();
-                showNotification('Соревнование удалено');
-            }
+            if (competitionsList.length === 0) { container.innerHTML = '<p>Нет соревнований</p>'; return; }
+            container.innerHTML = competitionsList.map(comp => `
+                <div class="competition-card">
+                    <div class="competition-title">🏅 ${comp.name}</div>
+                    <div class="stats">📅 Дата: ${comp.date} | 👥 Участников: ${participantsList.filter(p => p.competition_id === comp.id).length}</div>
+                    <div class="stats">🔗 Ссылка: ${window.location.origin}${window.location.pathname.replace('admin.html', 'register.html')}?comp=${comp.id}</div>
+                    <button class="btn" onclick="deleteCompetition(${comp.id})" style="margin-top:10px; background:#e74c3c;">Удалить</button>
+                </div>
+            `).join('');
         }
         
         function updateCompetitionSelect() {
             const select = document.getElementById('selectCompetition');
-            select.innerHTML = '<option value="">-- Выберите соревнование --</option>' + 
-                competitions.map(comp => `<option value="${comp.id}">${comp.name} (${comp.date})</option>`).join('');
+            select.innerHTML = '<option value="">-- Выберите соревнование --</option>' + competitionsList.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
         }
         
-        // ============ УПРАВЛЕНИЕ РЕЗУЛЬТАТАМИ ============
-        function loadParticipantsForResults() {
+        function addAgeCategory() {
+            const min = document.getElementById('catMin').value;
+            const max = document.getElementById('catMax').value;
+            const name = document.getElementById('catName').value;
+            if (!min || !max || !name) { alert('Заполните все поля'); return; }
+            ageCategoriesBuffer.push({ min: parseInt(min), max: parseInt(max), name });
+            document.getElementById('catMin').value = '';
+            document.getElementById('catMax').value = '';
+            document.getElementById('catName').value = '';
+            const container = document.getElementById('ageCategoriesList');
+            container.innerHTML = ageCategoriesBuffer.map((cat, idx) => `<div class="age-category-item">${cat.min}-${cat.max} лет: ${cat.name} <button onclick="removeAgeCategory(${idx})">✖</button></div>`).join('');
+        }
+        
+        function removeAgeCategory(idx) { ageCategoriesBuffer.splice(idx, 1); updateAgeCategoriesDisplay(); }
+        function updateAgeCategoriesDisplay() {
+            const container = document.getElementById('ageCategoriesList');
+            container.innerHTML = ageCategoriesBuffer.map((cat, idx) => `<div class="age-category-item">${cat.min}-${cat.max} лет: ${cat.name} <button onclick="removeAgeCategory(${idx})">✖</button></div>`).join('');
+        }
+        
+        async function createCompetition() {
+            if (!supabaseClient) { alert('Сначала подключитесь к Supabase'); return; }
+            const name = document.getElementById('newCompName').value.trim();
+            const date = document.getElementById('newCompDate').value;
+            const certUrl = document.getElementById('certificatePageUrl').value.trim();
+            if (!name || !date) { alert('Заполните название и дату'); return; }
+            if (ageCategoriesBuffer.length === 0) { alert('Добавьте хотя бы одну категорию'); return; }
+            const newComp = { id: Date.now(), name, date, certificate_page_url: certUrl, age_categories: ageCategoriesBuffer, created_at: new Date() };
+            const { error } = await supabaseClient.from('competitions').insert([newComp]);
+            if (error) { alert('Ошибка: ' + error.message); return; }
+            ageCategoriesBuffer = [];
+            updateAgeCategoriesDisplay();
+            document.getElementById('newCompName').value = '';
+            document.getElementById('newCompDate').value = '';
+            document.getElementById('certificatePageUrl').value = '';
+            loadCompetitions();
+            alert('Соревнование создано!');
+        }
+        
+        async function deleteCompetition(id) {
+            if (!confirm('Удалить соревнование?')) return;
+            await supabaseClient.from('competitions').delete().eq('id', id);
+            await supabaseClient.from('participants').delete().eq('competition_id', id);
+            loadCompetitions();
+        }
+        
+        async function loadParticipantsForResults() {
             const compId = parseInt(document.getElementById('selectCompetition').value);
             if (!compId) return;
-            
-            currentCompetitionId = compId;
-            const compParticipants = participants.filter(p => p.competitionId === compId);
-            const competition = competitions.find(c => c.id === compId);
-            
-            document.getElementById('resultsStats').innerHTML = `
-                <strong>Всего участников:</strong> ${compParticipants.length} | 
-                <strong>С результатами:</strong> ${compParticipants.filter(p => p.place !== 'Не определено').length}
-            `;
-            
+            const { data } = await supabaseClient.from('participants').select('*').eq('competition_id', compId);
+            participantsList = data || [];
             const tbody = document.getElementById('resultsTableBody');
-            if (compParticipants.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6">Нет зарегистрированных участников</td></tr>';
-                return;
-            }
-            
-            tbody.innerHTML = compParticipants.map(p => `
-                <tr>
-                    <td>${p.name}</td>
-                    <td>${p.email}</td>
-                    <td>${p.birthdate || '-'}</td>
-                    <td>${p.category || '-'}</td>
-                    <td>
-                        <input type="text" class="place-input" value="${p.place}" 
-                               data-id="${p.id}" onchange="updatePlace(${p.id}, this.value)">
-                    </td>
-                    <td>
-                        <span class="status-badge ${p.emailSent ? 'status-sent' : 'status-pending'}">
-                            ${p.emailSent ? '✅ Отправлено' : '⏳ Ожидает'}
-                        </span>
-                    </td>
-                </tr>
+            tbody.innerHTML = participantsList.map(p => `
+                <tr><td>${p.name}</td><td>${p.email}</td><td>${p.birthdate || '-'}</td><td>${p.category || '-'}</td>
+                <td><input type="text" class="place-input" value="${p.place}" onchange="updatePlace(${p.id}, this.value)"></td></tr>
             `).join('');
+            document.getElementById('resultsStats').innerHTML = `👥 Всего: ${participantsList.length}`;
         }
         
         async function updatePlace(participantId, place) {
-            const index = participants.findIndex(p => p.id === participantId);
-            if (index === -1) return;
-            
-            const oldPlace = participants[index].place;
-            participants[index].place = place;
-            
-            // Если место изменилось и не равно "Не определено" — отправляем письмо
-            if (place !== 'Не определено' && place !== oldPlace) {
-                const participant = participants[index];
-                const competition = competitions.find(c => c.id === participant.competitionId);
-                
-                // Отправляем письмо о результате
-                const emailSent = await sendResultEmail(participant, competition);
-                participants[index].emailSent = emailSent;
-                participants[index].certificateGenerated = true;
-            }
-            
-            localStorage.setItem('participants', JSON.stringify(participants));
-            
-            // Обновляем таблицу
-            loadParticipantsForResults();
-            showNotification(`Место "${place}" сохранено для ${participants[index].name}`);
-        }
-        
-        async function sendResultEmail(participant, competition) {
-            const settings = JSON.parse(localStorage.getItem('emailSettings') || '{}');
-            
-            if (!settings.serviceId || !settings.resultTemplateId || !settings.publicKey) {
-                console.warn('Email не настроен');
-                return false;
-            }
-            
-            // Формируем ссылку на скачивание грамоты
-            const certificateLink = competition && competition.certificatePageUrl 
-                ? competition.certificatePageUrl 
-                : `${window.location.origin}${window.location.pathname.replace('admin.html', 'participant.html')}`;
-            
-            try {
-                emailjs.init(settings.publicKey);
-                
-                const templateParams = {
-                    name: participant.name,
-                    competition: competition ? competition.name : participant.competition,
-                    place: participant.place,
-                    link: certificateLink,
-                    to_email: participant.email
-                };
-                
-                await emailjs.send(
-                    settings.serviceId,
-                    settings.resultTemplateId,
-                    templateParams
-                );
-                
-                showNotification(`Письмо отправлено на ${participant.email}`);
-                return true;
-                
-            } catch (error) {
-                console.error('Ошибка отправки письма:', error);
-                showNotification(`Ошибка отправки на ${participant.email}`, 'error');
-                return false;
-            }
+            await supabaseClient.from('participants').update({ place: place }).eq('id', participantId);
         }
         
         function exportResultsToCSV() {
-            const compParticipants = participants.filter(p => p.competitionId === currentCompetitionId);
-            const competition = competitions.find(c => c.id === currentCompetitionId);
-            
-            if (!competition) return;
-            
-            const headers = ['ФИО', 'Email', 'Дата рождения', 'Категория', 'Место', 'Дата регистрации', 'Письмо отправлено'];
-            const rows = compParticipants.map(p => [
-                p.name, p.email, p.birthdate || '-', p.category || '-', p.place, p.registeredAt, p.emailSent ? 'Да' : 'Нет'
-            ]);
-            
+            const headers = ['ФИО', 'Email', 'Категория', 'Место'];
+            const rows = participantsList.map(p => [p.name, p.email, p.category, p.place]);
             const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
             const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
-            link.download = `${competition.name}_results.csv`;
+            link.download = 'results.csv';
             link.click();
         }
         
-        function generateAllCertificates() {
-            const compParticipants = participants.filter(p => p.competitionId === currentCompetitionId && p.place !== 'Не определено');
-            
-            if (compParticipants.length === 0) {
-                alert('Нет участников с результатами');
-                return;
-            }
-            
-            compParticipants.forEach(p => {
-                openCertificateWindow(p);
-            });
-            
-            alert(`Открыто ${compParticipants.length} окон с грамотами. В каждом окне нажмите Ctrl+P для сохранения PDF.`);
-        }
-        
-        function openCertificateWindow(participant) {
-            const competition = competitions.find(c => c.id === participant.competitionId);
-            const dateStr = competition ? competition.date : new Date().toLocaleDateString('ru-RU');
-            
-            const html = `
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title>Грамота для ${participant.name}</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            background: #e0e0e0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            padding: 20px;
-            font-family: 'Times New Roman', 'Georgia', serif;
-        }
-        .certificate {
-            width: 297mm;
-            height: 210mm;
-            background: #fffef7;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            padding: 12mm;
-        }
-        .outer-border { border: 4mm solid #ffd700; height: 100%; background: white; }
-        .inner-border { border: 1mm solid #ffd700; margin: 3mm; height: calc(100% - 6mm); position: relative; }
-        .corner {
-            position: absolute;
-            width: 15mm;
-            height: 15mm;
-            border-color: #ffd700;
-            border-style: solid;
-            border-width: 0;
-        }
-        .corner-tl { top: 5mm; left: 5mm; border-top-width: 1.5mm; border-left-width: 1.5mm; }
-        .corner-tr { top: 5mm; right: 5mm; border-top-width: 1.5mm; border-right-width: 1.5mm; }
-        .corner-bl { bottom: 5mm; left: 5mm; border-bottom-width: 1.5mm; border-right-width: 1.5mm; }
-        .corner-br { bottom: 5mm; right: 5mm; border-bottom-width: 1.5mm; border-right-width: 1.5mm; }
-        .content { padding: 15mm 10mm; text-align: center; }
-        h1 { font-size: 48px; color: #b8860b; letter-spacing: 6px; margin-bottom: 15px; }
-        .subtitle { font-size: 14px; color: #999; margin-bottom: 20px; }
-        .award { font-size: 22px; margin: 25px 0; }
-        .name { font-size: 38px; font-weight: bold; margin: 25px 0; color: #2c3e50; border-bottom: 2px solid #ffd700; display: inline-block; padding: 0 20px 10px; }
-        .place { font-size: 28px; margin: 25px 0; color: #b8860b; font-weight: bold; }
-        .competition { font-size: 20px; margin: 20px 0; color: #555; }
-        .date { margin-top: 35px; font-size: 16px; color: #666; }
-        .signature { position: absolute; bottom: 20mm; left: 20mm; font-size: 12px; }
-        .stamp { position: absolute; bottom: 20mm; right: 20mm; font-size: 12px; text-align: right; }
-        .stamp-circle { width: 25mm; height: 25mm; border: 1px solid #ffd700; border-radius: 50%; display: inline-block; line-height: 25mm; text-align: center; color: #b8860b; font-size: 10px; margin-top: 5px; }
-        @media print {
-            body { background: white; padding: 0; margin: 0; }
-            .certificate { box-shadow: none; margin: 0; padding: 0; }
-            .no-print { display: none; }
-        }
-    </style>
-</head>
-<body>
-    <div class="certificate">
-        <div class="outer-border">
-            <div class="inner-border">
-                <div class="corner corner-tl"></div>
-                <div class="corner corner-tr"></div>
-                <div class="corner corner-bl"></div>
-                <div class="corner corner-br"></div>
-                <div class="content">
-                    <div class="subtitle">РОССИЙСКАЯ ФЕДЕРАЦИЯ</div>
-                    <h1>ГРАМОТА</h1>
-                    <div class="award">НАГРАЖДАЕТСЯ</div>
-                    <div class="name">${participant.name}</div>
-                    <div class="place">занявший(ая) ${participant.place} место</div>
-                    <div class="competition">в соревнованиях «${competition ? competition.name : ''}»</div>
-                    <div class="date">${dateStr}</div>
-                </div>
-                <div class="signature">
-                    Председатель оргкомитета<br>
-                    __________________<br>
-                    И.О. Фамилия
-                </div>
-                <div class="stamp">
-                    М.П.<br>
-                    <div class="stamp-circle">ПЕЧАТЬ</div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="no-print" style="position: fixed; bottom: 20px; left: 20px; background: #333; color: white; padding: 10px; border-radius: 5px;">
-        💡 Для сохранения как PDF: нажмите Ctrl+P (или Cmd+P) → "Сохранить как PDF"
-    </div>
-</body>
-</html>
-            `;
-            
-            const win = window.open('', '_blank');
-            win.document.write(html);
-            win.document.close();
-        }
-        
-        // ============ НАСТРОЙКИ EMAIL ============
-        function loadEmailSettings() {
-            const settings = JSON.parse(localStorage.getItem('emailSettings') || '{}');
-            document.getElementById('serviceId').value = settings.serviceId || '';
-            document.getElementById('resultTemplateId').value = settings.resultTemplateId || '';
-            document.getElementById('publicKey').value = settings.publicKey || '';
-        }
-        
-        function saveEmailSettings() {
-            const settings = {
-                serviceId: document.getElementById('serviceId').value.trim(),
-                resultTemplateId: document.getElementById('resultTemplateId').value.trim(),
-                publicKey: document.getElementById('publicKey').value.trim()
-            };
-            
-            localStorage.setItem('emailSettings', JSON.stringify(settings));
-            emailjs.init(settings.publicKey);
-            
-            const msg = document.getElementById('emailMessage');
-            msg.className = 'message success';
-            msg.textContent = '✅ Настройки сохранены';
-            msg.style.display = 'block';
-            setTimeout(() => msg.style.display = 'none', 3000);
-        }
-        
-        async function testEmail() {
-            const settings = JSON.parse(localStorage.getItem('emailSettings') || '{}');
-            const testEmail = prompt('Введите email для теста:');
-            if (!testEmail) return;
-            
-            try {
-                emailjs.init(settings.publicKey);
-                await emailjs.send(settings.serviceId, settings.resultTemplateId, {
-                    name: 'Тестовый Участник',
-                    competition: 'Тестовое соревнование',
-                    place: '1',
-                    link: 'https://example.com',
-                    to_email: testEmail
-                });
-                showNotification('✅ Тестовое письмо отправлено!');
-            } catch (error) {
-                alert('❌ Ошибка отправки: ' + error.text);
-            }
-        }
-        
-        // ============ ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ============
         function showTab(tabName) {
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             event.target.classList.add('active');
-            
+            document.getElementById('supabase-tab').style.display = tabName === 'supabase' ? 'block' : 'none';
             document.getElementById('competitions-tab').style.display = tabName === 'competitions' ? 'block' : 'none';
             document.getElementById('results-tab').style.display = tabName === 'results' ? 'block' : 'none';
-            document.getElementById('settings-tab').style.display = tabName === 'settings' ? 'block' : 'none';
-            
-            if (tabName === 'competitions') loadData();
-            if (tabName === 'results') updateCompetitionSelect();
-            if (tabName === 'settings') loadEmailSettings();
+            if (tabName === 'competitions') loadCompetitions();
         }
         
-        function copyToClipboard(text) {
-            navigator.clipboard.writeText(text);
-            showNotification('Ссылка скопирована в буфер обмена');
-        }
-        
-        function openRegistrationLink() {
-            if (competitions.length === 0) {
-                alert('Сначала создайте соревнование');
-                return;
-            }
-            alert('Ссылки на регистрацию есть в карточках каждого соревнования');
-        }
-        
-        function showNotification(message, type = 'success') {
-            const notification = document.getElementById('notification');
-            notification.textContent = message;
-            notification.style.backgroundColor = type === 'error' ? '#e74c3c' : '#27ae60';
-            notification.style.display = 'block';
-            setTimeout(() => {
-                notification.style.display = 'none';
-            }, 3000);
-        }
-        
-        // Инициализация
-        loadData();
-        loadEmailSettings();
+        loadSavedSettings();
     </script>
 </body>
 </html>
