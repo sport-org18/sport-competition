@@ -46,16 +46,18 @@
         </div>
     </div>
     <script>
+        // ========== ВСТАВЬТЕ ВАШИ КЛЮЧИ ==========
+        const SUPABASE_URL = "https://kcpyfbdslhisfqqobvje.supabase.co";
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjcHlmYmRzbGhpc2ZxcW9idmplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYwMjc2OTksImV4cCI6MjA2MTYwMzY5OX0.cZCZJvqPuJoQIqQnYoNEvO9AR8RrVgC76WdnGUV3T2g";
+        // =======================================
+        
         let supabaseClient = null;
         let currentCompetition = null;
         
         function getCompId() { return parseInt(new URLSearchParams(window.location.search).get('comp')); }
         
         async function init() {
-            const url = localStorage.getItem('supabase_url');
-            const key = localStorage.getItem('supabase_key');
-            if (!url || !key) { showError('Ошибка: не настроено подключение к базе данных. Обратитесь к организатору.'); return false; }
-            supabaseClient = supabase.createClient(url, key);
+            supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
             const compId = getCompId();
             if (!compId) { showError('Ссылка недействительна.'); return false; }
             const { data, error } = await supabaseClient.from('competitions').select('*').eq('id', compId);
@@ -69,7 +71,10 @@
         function calculateCategory() {
             const birthdate = document.getElementById('birthdate').value;
             if (!birthdate) return;
-            const age = new Date().getFullYear() - new Date(birthdate).getFullYear();
+            const birthDate = new Date(birthdate);
+            let age = new Date().getFullYear() - birthDate.getFullYear();
+            const monthDiff = new Date().getMonth() - birthDate.getMonth();
+            if (monthDiff < 0 || (monthDiff === 0 && new Date().getDate() < birthDate.getDate())) age--;
             const cats = currentCompetition.age_categories || [];
             const match = cats.find(c => age >= c.min && age <= c.max);
             document.getElementById('category').value = match ? match.name : 'Не определена';
@@ -77,9 +82,8 @@
         
         function showError(msg) {
             document.getElementById('formBlock').style.display = 'none';
-            const errDiv = document.getElementById('errorBlock');
             document.getElementById('errorMessage').textContent = msg;
-            errDiv.style.display = 'block';
+            document.getElementById('errorBlock').style.display = 'block';
         }
         
         document.getElementById('registrationForm').addEventListener('submit', async (e) => {
@@ -89,7 +93,7 @@
             const birthdate = document.getElementById('birthdate').value;
             const category = document.getElementById('category').value;
             const team = document.getElementById('team').value;
-            if (category === 'Не определена') { alert('Категория не определена'); return; }
+            if (category === 'Не определена') { alert('Ваш возраст не подходит ни под одну категорию'); return; }
             const participant = {
                 id: Date.now(),
                 competition_id: currentCompetition.id,
