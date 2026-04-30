@@ -4,447 +4,95 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Получить грамоту</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-        }
-        
-        body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
-        
-        .container {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            width: 100%;
-            max-width: 500px;
-            padding: 40px;
-        }
-        
-        h1 {
-            color: #333;
-            margin-bottom: 30px;
-            text-align: center;
-        }
-        
-        .form-group {
-            margin-bottom: 20px;
-        }
-        
-        label {
-            display: block;
-            margin-bottom: 8px;
-            color: #555;
-            font-weight: 500;
-        }
-        
-        input {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 10px;
-            font-size: 16px;
-            margin-bottom: 10px;
-        }
-        
-        button {
-            width: 100%;
-            padding: 14px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-        }
-        
-        button:hover {
-            transform: translateY(-2px);
-            transition: transform 0.2s;
-        }
-        
-        .message {
-            margin-top: 20px;
-            padding: 15px;
-            border-radius: 10px;
-            display: none;
-        }
-        
-        .success {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        
-        .error {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-        
-        .info {
-            background-color: #d1ecf1;
-            color: #0c5460;
-            border: 1px solid #bee5eb;
-        }
-        
-        .loading {
-            text-align: center;
-            margin: 20px 0;
-            color: #667eea;
-            font-weight: 500;
-        }
-        
-        .back-link {
-            text-align: center;
-            margin-top: 20px;
-        }
-        
-        .back-link a {
-            color: #667eea;
-            text-decoration: none;
-        }
-        
-        .back-link a:hover {
-            text-decoration: underline;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; }
+        body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
+        .container { background: white; border-radius: 20px; width: 100%; max-width: 500px; padding: 40px; }
+        h1 { text-align: center; margin-bottom: 30px; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-weight: 500; }
+        input, select { width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 16px; }
+        button { width: 100%; padding: 14px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 10px; cursor: pointer; }
+        .message { margin-top: 20px; padding: 15px; border-radius: 10px; display: none; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        .loading { text-align: center; margin: 20px 0; }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>📄 Получить грамоту</h1>
-        
-        <div class="form-group">
-            <label for="emailInput">Введите email, который указывали при регистрации</label>
-            <input type="email" id="emailInput" placeholder="email@example.com">
-            <button onclick="findParticipant()">Найти мою грамоту</button>
-        </div>
-        
+        <div class="form-group"><label>Выберите соревнование</label><select id="competitionSelect" onchange="clearResult()"></select></div>
+        <div class="form-group"><label>Введите ваш email</label><input type="email" id="emailInput" placeholder="email@example.com"></div>
+        <button onclick="findParticipant()">Найти грамоту</button>
         <div id="loading" class="loading" style="display: none;">⏳ Поиск...</div>
         <div id="result" class="message"></div>
-        
-        <div class="back-link">
-            <a href="index.html">← На главную</a>
-        </div>
     </div>
-
     <script>
+        // ========== ВСТАВЬТЕ ВАШИ КЛЮЧИ ==========
+        const SUPABASE_URL = "https://kcpyfbdslhisfqqobvje.supabase.co";
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjcHlmYmRzbGhpc2ZxcW9idmplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYwMjc2OTksImV4cCI6MjA2MTYwMzY5OX0.cZCZJvqPuJoQIqQnYoNEvO9AR8RrVgC76WdnGUV3T2g";
+        // =======================================
+        
+        let supabaseClient = null;
+        let competitions = [];
+        
+        async function init() {
+            supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            await loadCompetitions();
+        }
+        
+        async function loadCompetitions() {
+            const { data } = await supabaseClient.from('competitions').select('*');
+            competitions = data || [];
+            const select = document.getElementById('competitionSelect');
+            select.innerHTML = '<option value="">-- Выберите соревнование --</option>' + competitions.map(c => `<option value="${c.id}">${c.name} (${c.date})</option>`).join('');
+        }
+        
         async function findParticipant() {
+            const compId = document.getElementById('competitionSelect').value;
             const email = document.getElementById('emailInput').value.trim();
-            const loadingDiv = document.getElementById('loading');
-            const resultDiv = document.getElementById('result');
-            const findBtn = document.querySelector('button');
-            
-            if (!email) {
-                alert('Введите email');
-                return;
-            }
-            
-            loadingDiv.style.display = 'block';
-            resultDiv.style.display = 'none';
-            findBtn.disabled = true;
-            
-            await new Promise(resolve => setTimeout(resolve, 300));
-            
-            const participants = JSON.parse(localStorage.getItem('participants') || '[]');
-            const participant = participants.find(p => p.email.toLowerCase() === email.toLowerCase());
-            
-            loadingDiv.style.display = 'none';
-            findBtn.disabled = false;
-            
-            if (!participant) {
-                resultDiv.className = 'message error';
-                resultDiv.textContent = '❌ Участник с таким email не найден. Проверьте правильность ввода.';
-                resultDiv.style.display = 'block';
-                return;
-            }
-            
-            if (participant.place === 'Не определено') {
-                resultDiv.className = 'message info';
-                resultDiv.textContent = '⏳ Результаты еще не опубликованы. Пожалуйста, зайдите позже.';
-                resultDiv.style.display = 'block';
-                return;
-            }
-            
-            try {
-                resultDiv.className = 'message info';
-                resultDiv.textContent = '⏳ Создание грамоты...';
-                resultDiv.style.display = 'block';
-                
-                // Открываем новое окно с грамотой
-                openCertificateWindow(participant);
-                
-                resultDiv.className = 'message success';
-                resultDiv.textContent = '✅ Грамота открыта в новом окне. Нажмите Ctrl+P (или Cmd+P) для сохранения как PDF.';
-                resultDiv.style.display = 'block';
-                
-            } catch (error) {
-                console.error(error);
-                resultDiv.className = 'message error';
-                resultDiv.textContent = '❌ Ошибка при создании грамоты. Сообщите организаторам.';
-                resultDiv.style.display = 'block';
-            }
+            if (!compId || !email) { alert('Выберите соревнование и введите email'); return; }
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('result').style.display = 'none';
+            const { data, error } = await supabaseClient.from('participants').select('*').eq('competition_id', parseInt(compId)).eq('email', email);
+            document.getElementById('loading').style.display = 'none';
+            if (error || !data || data.length === 0) { showMessage('Участник с таким email не найден в этом соревновании', 'error'); return; }
+            const p = data[0];
+            if (p.place === 'Не определено') { showMessage('Результаты ещё не опубликованы. Зайдите позже.', 'info'); return; }
+            generatePDF(p);
         }
         
-        function openCertificateWindow(participant) {
-            // Форматируем дату
-            const today = new Date();
-            const months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 
-                            'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
-            const dateStr = `${today.getDate()} ${months[today.getMonth()]} ${today.getFullYear()} г.`;
-            
-            // Создаем HTML грамоты
-            const html = `
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title>Грамота для ${participant.name}</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        async function generatePDF(p) {
+            const comp = competitions.find(c => c.id === p.competition_id);
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+            doc.setFillColor(255, 215, 0); doc.rect(0, 0, 297, 210, 'F');
+            doc.setFillColor(255, 255, 255); doc.rect(5, 5, 287, 200, 'F');
+            doc.setDrawColor(255, 215, 0); doc.setLineWidth(2); doc.rect(10, 10, 277, 190);
+            doc.setFontSize(48); doc.text('ГРАМОТА', 148.5, 45, { align: 'center' });
+            doc.setFontSize(18); doc.text('НАГРАЖДАЕТСЯ', 148.5, 75, { align: 'center' });
+            doc.setFontSize(26); doc.text(p.name, 148.5, 100, { align: 'center' });
+            doc.setFontSize(18); doc.text(`занявший(ая) ${p.place} место`, 148.5, 125, { align: 'center' });
+            doc.setFontSize(16); doc.text(`в соревнованиях "${comp ? comp.name : ''}"`, 148.5, 145, { align: 'center' });
+            doc.setFontSize(12); doc.text(comp ? comp.date : '', 148.5, 170, { align: 'center' });
+            doc.setFontSize(10); doc.text('Председатель оргкомитета', 70, 190); doc.text('__________________', 70, 195);
+            doc.text('М.П.', 240, 190);
+            doc.save(`Грамота_${p.name}.pdf`);
+            showMessage('Грамота скачана!', 'success');
         }
         
-        body {
-            background: #e0e0e0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            padding: 20px;
-            font-family: 'Times New Roman', 'Georgia', 'Palatino', serif;
+        function showMessage(msg, type) {
+            const div = document.getElementById('result');
+            div.className = `message ${type}`;
+            div.textContent = msg;
+            div.style.display = 'block';
         }
-        
-        .certificate {
-            width: 297mm;
-            height: 210mm;
-            background: #fffef7;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            position: relative;
-            padding: 12mm;
-            box-sizing: border-box;
-        }
-        
-        /* Внешняя золотая рамка */
-        .outer-border {
-            border: 4mm solid #ffd700;
-            height: 100%;
-            position: relative;
-            background: white;
-        }
-        
-        /* Внутренняя декоративная рамка */
-        .inner-border {
-            border: 1mm solid #ffd700;
-            margin: 3mm;
-            height: calc(100% - 6mm);
-            position: relative;
-            background: white;
-        }
-        
-        /* Узорные уголки */
-        .corner {
-            position: absolute;
-            width: 15mm;
-            height: 15mm;
-            border-color: #ffd700;
-            border-style: solid;
-            border-width: 0;
-        }
-        .corner-tl {
-            top: 5mm;
-            left: 5mm;
-            border-top-width: 1.5mm;
-            border-left-width: 1.5mm;
-        }
-        .corner-tr {
-            top: 5mm;
-            right: 5mm;
-            border-top-width: 1.5mm;
-            border-right-width: 1.5mm;
-        }
-        .corner-bl {
-            bottom: 5mm;
-            left: 5mm;
-            border-bottom-width: 1.5mm;
-            border-left-width: 1.5mm;
-        }
-        .corner-br {
-            bottom: 5mm;
-            right: 5mm;
-            border-bottom-width: 1.5mm;
-            border-right-width: 1.5mm;
-        }
-        
-        /* Содержимое */
-        .content {
-            padding: 15mm 10mm 10mm 10mm;
-            text-align: center;
-        }
-        
-        h1 {
-            font-size: 48px;
-            color: #b8860b;
-            letter-spacing: 6px;
-            margin-bottom: 15px;
-            font-weight: bold;
-        }
-        
-        .subtitle {
-            font-size: 14px;
-            color: #999;
-            margin-bottom: 20px;
-            letter-spacing: 2px;
-        }
-        
-        .award {
-            font-size: 22px;
-            margin-top: 25px;
-            color: #333;
-        }
-        
-        .name {
-            font-size: 38px;
-            font-weight: bold;
-            margin: 25px 0;
-            color: #2c3e50;
-            border-bottom: 2px solid #ffd700;
-            display: inline-block;
-            padding: 0 20px 10px 20px;
-            letter-spacing: 1px;
-        }
-        
-        .place {
-            font-size: 28px;
-            margin: 25px 0;
-            color: #b8860b;
-            font-weight: bold;
-        }
-        
-        .competition {
-            font-size: 20px;
-            margin: 20px 0;
-            color: #555;
-        }
-        
-        .date {
-            margin-top: 35px;
-            font-size: 16px;
-            color: #666;
-        }
-        
-        .signature {
-            position: absolute;
-            bottom: 20mm;
-            left: 20mm;
-            font-size: 12px;
-            text-align: left;
-        }
-        
-        .stamp {
-            position: absolute;
-            bottom: 20mm;
-            right: 20mm;
-            font-size: 12px;
-            text-align: right;
-        }
-        
-        .stamp-circle {
-            width: 25mm;
-            height: 25mm;
-            border: 1px solid #ffd700;
-            border-radius: 50%;
-            display: inline-block;
-            line-height: 25mm;
-            text-align: center;
-            color: #b8860b;
-            font-size: 10px;
-            margin-top: 5px;
-        }
-        
-        hr {
-            border: none;
-            border-top: 1px solid #ffd700;
-            margin: 5px 0;
-        }
-        
-        @media print {
-            body {
-                background: white;
-                padding: 0;
-                margin: 0;
-            }
-            .certificate {
-                box-shadow: none;
-                margin: 0;
-                padding: 0;
-            }
-            .no-print {
-                display: none;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="certificate">
-        <div class="outer-border">
-            <div class="inner-border">
-                <div class="corner corner-tl"></div>
-                <div class="corner corner-tr"></div>
-                <div class="corner corner-bl"></div>
-                <div class="corner corner-br"></div>
-                <div class="content">
-                    <div class="subtitle">РОССИЙСКАЯ ФЕДЕРАЦИЯ</div>
-                    <h1>ГРАМОТА</h1>
-                    <div class="award">НАГРАЖДАЕТСЯ</div>
-                    <div class="name">${participant.name}</div>
-                    <div class="place">занявший(ая) ${participant.place} место</div>
-                    <div class="competition">в соревнованиях «${participant.competition}»</div>
-                    <div class="date">${dateStr}</div>
-                </div>
-                <div class="signature">
-                    Председатель оргкомитета<br>
-                    <hr style="width: 80px;">
-                    И.О. Фамилия
-                </div>
-                <div class="stamp">
-                    М.П.<br>
-                    <div class="stamp-circle">ПЕЧАТЬ</div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="no-print" style="position: fixed; bottom: 20px; left: 20px; background: #333; color: white; padding: 10px; border-radius: 5px;">
-        💡 Для сохранения как PDF: нажмите Ctrl+P (или Cmd+P) → "Сохранить как PDF"
-    </div>
-</body>
-</html>
-            `;
-            
-            // Открываем новое окно
-            const win = window.open('', '_blank');
-            win.document.write(html);
-            win.document.close();
-        }
-        
-        // Добавляем возможность нажать Enter
-        document.getElementById('emailInput').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                findParticipant();
-            }
-        });
+        function clearResult() { document.getElementById('result').style.display = 'none'; }
+        init();
     </script>
 </body>
 </html>
