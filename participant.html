@@ -24,15 +24,7 @@
         .loading { text-align: center; margin: 20px 0; }
         .error-page { text-align: center; padding: 20px; }
         .error-page h2 { color: #e74c3c; margin-bottom: 15px; }
-        
-        .certificate-template {
-            position: absolute;
-            left: -9999px;
-            top: -9999px;
-            width: 800px;
-            background: white;
-            font-family: 'Times New Roman', 'Georgia', serif;
-        }
+        .certificate-template { position: absolute; left: -9999px; top: -9999px; width: 800px; background: white; font-family: 'Times New Roman', 'Georgia', serif; }
     </style>
 </head>
 <body>
@@ -54,13 +46,13 @@
             <div id="result" class="message"></div>
         </div>
     </div>
-
     <div id="certificateTemplate" class="certificate-template"></div>
 
     <script>
-        // КЛЮЧИ SUPABASE
+        // ========== ПРАВИЛЬНЫЕ КЛЮЧИ SUPABASE ==========
         const SUPABASE_URL = "https://kcpyfbdslhisfqqobvje.supabase.co";
-        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjcHlmYmRzbGhpc2ZxcW9idmplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYwMjc2OTksImV4cCI6MjA2MTYwMzY5OX0.cZCZJvqPuJoQIqQnYoNEvO9AR8RrVgC76WdnGUV3T2g";
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjcHlmYmRzbGhpc2ZxcW9idmplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1Mjg1OTAsImV4cCI6MjA5MzEwNDU5MH0.Y4861DLKZ0FG3_rkosf_qH0w5P2F_hdheIBOfTTSmsI";
+        // ===============================================
         
         let supabaseClient = null;
         let currentCompetition = null;
@@ -100,7 +92,6 @@
         
         async function findParticipant() {
             const email = document.getElementById('emailInput').value.trim();
-            
             if (!email) { alert('Введите email'); return; }
             
             document.getElementById('loading').style.display = 'block';
@@ -157,30 +148,16 @@
             
             const templateDiv = document.getElementById('certificateTemplate');
             templateDiv.innerHTML = certificateHTML;
-            
             showMessage('⏳ Создание грамоты...', 'info');
-            
             await new Promise(resolve => setTimeout(resolve, 100));
             
             const element = templateDiv.firstElementChild;
-            const canvas = await html2canvas(element, {
-                scale: 3,
-                backgroundColor: '#ffffff',
-                logging: false,
-                useCORS: true
-            });
-            
+            const canvas = await html2canvas(element, { scale: 3, backgroundColor: '#ffffff', logging: false });
             const { jsPDF } = window.jspdf;
             const imgData = canvas.toDataURL('image/png');
-            const doc = new jsPDF({
-                orientation: 'landscape',
-                unit: 'mm',
-                format: 'a4'
-            });
-            
+            const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
             const imgWidth = 297;
             const imgHeight = (canvas.height * imgWidth) / canvas.width;
-            
             doc.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
             doc.save(`Грамота_${currentParticipant.name}.pdf`);
             
@@ -195,7 +172,6 @@
             div.style.display = 'block';
         }
         
-        // Скрываем форму до загрузки соревнования
         document.getElementById('formBlock').style.display = 'none';
         init();
     </script>
