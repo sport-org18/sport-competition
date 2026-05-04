@@ -33,11 +33,10 @@
         .message { padding: 15px; border-radius: 10px; margin-top: 20px; display: none; }
         .message.success { background: #d4edda; color: #155724; display: block; }
         .message.error { background: #f8d7da; color: #721c24; display: block; }
-        .loading { text-align: center; padding: 20px; color: #667eea; }
         .link-box { background: #f0f0f0; padding: 10px; border-radius: 5px; font-size: 12px; word-break: break-all; margin-top: 10px; }
         .link-box a { color: #667eea; text-decoration: none; }
         .link-box a:hover { text-decoration: underline; }
-        code { background: #eee; padding: 2px 5px; border-radius: 3px; font-size: 11px; }
+        .link-box-gold { background: #fff8e7; border-left: 3px solid #ffd700; }
     </style>
 </head>
 <body>
@@ -50,7 +49,6 @@
             <button class="tab" onclick="showTab('results')">Результаты</button>
         </div>
         
-        <!-- Вкладка настройки Supabase -->
         <div id="supabase-tab">
             <div class="card">
                 <h3>🔗 Настройки подключения к Supabase</h3>
@@ -67,7 +65,6 @@
             </div>
         </div>
         
-        <!-- Вкладка Соревнования -->
         <div id="competitions-tab" style="display: none;">
             <div class="card">
                 <h3>➕ Создать новое соревнование</h3>
@@ -98,7 +95,6 @@
             </div>
         </div>
         
-        <!-- Вкладка Результаты -->
         <div id="results-tab" style="display: none;">
             <div class="card">
                 <h3>Выберите соревнование</h3>
@@ -118,9 +114,7 @@
     </div>
 
     <script>
-        // ФИКСИРОВАННАЯ ССЫЛКА НА СТРАНИЦУ ПОЛУЧЕНИЯ ГРАМОТЫ
-        const CERTIFICATE_PAGE_URL = "https://sport-org18.github.io/sport-competition/participant.html";
-        
+        const BASE_URL = "https://sport-org18.github.io/sport-competition/";
         let supabaseClient = null;
         let competitionsList = [];
         let participantsList = [];
@@ -134,7 +128,7 @@
             localStorage.setItem('supabase_url', url);
             localStorage.setItem('supabase_key', key);
             document.getElementById('connStatus').className = 'message success';
-            document.getElementById('connStatus').textContent = '✅ Подключено! Теперь можете работать с соревнованиями.';
+            document.getElementById('connStatus').textContent = '✅ Подключено!';
             loadCompetitions();
         }
         
@@ -153,8 +147,7 @@
         
         async function loadCompetitions() {
             if (!supabaseClient) return;
-            const { data, error } = await supabaseClient.from('competitions').select('*').order('created_at', { ascending: false });
-            if (error) { console.error(error); return; }
+            const { data } = await supabaseClient.from('competitions').select('*').order('created_at', { ascending: false });
             competitionsList = data || [];
             await loadAllParticipants();
             updateCompetitionsList();
@@ -172,7 +165,8 @@
             if (competitionsList.length === 0) { container.innerHTML = '<p>Нет соревнований. Создайте первое!</p>'; return; }
             container.innerHTML = competitionsList.map(comp => {
                 const participantsCount = participantsList.filter(p => p.competition_id === comp.id).length;
-                const regLink = `${window.location.origin}${window.location.pathname.replace('admin.html', 'register.html')}?comp=${comp.id}`;
+                const regLink = `${BASE_URL}register.html?comp=${comp.id}`;
+                const certLink = `${BASE_URL}participant.html?comp=${comp.id}`;
                 return `
                     <div class="competition-card">
                         <div class="competition-title">🏅 ${comp.name}</div>
@@ -181,34 +175,33 @@
                             🔗 Ссылка для РЕГИСТРАЦИИ:<br>
                             <a href="${regLink}" target="_blank">${regLink}</a>
                         </div>
-                        <div class="link-box" style="background: #e8f0fe;">
+                        <div class="link-box link-box-gold">
                             📄 Ссылка для ПОЛУЧЕНИЯ ГРАМОТЫ:<br>
-                            <a href="${CERTIFICATE_PAGE_URL}" target="_blank">${CERTIFICATE_PAGE_URL}</a>
+                            <a href="${certLink}" target="_blank">${certLink}</a>
                         </div>
-                        <button class="btn" onclick="deleteCompetition(${comp.id})" style="background:#e74c3c; margin-top:10px;">🗑️ Удалить соревнование</button>
+                        <button class="btn" onclick="deleteCompetition(${comp.id})" style="background:#e74c3c; margin-top:10px;">🗑️ Удалить</button>
                     </div>
                 `;
             }).join('');
         }
         
         async function deleteCompetition(id) {
-            if (!confirm('Удалить соревнование? Все данные участников будут удалены безвозвратно!')) return;
+            if (!confirm('Удалить соревнование?')) return;
             await supabaseClient.from('participants').delete().eq('competition_id', id);
             await supabaseClient.from('competitions').delete().eq('id', id);
             loadCompetitions();
-            alert('Соревнование удалено');
         }
         
         function updateCompetitionSelect() {
             const select = document.getElementById('selectCompetition');
-            select.innerHTML = '<option value="">-- Выберите соревнование --</option>' + competitionsList.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+            select.innerHTML = '<option value="">-- Выберите --</option>' + competitionsList.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
         }
         
         function addAgeCategory() {
             const min = document.getElementById('catMin').value;
             const max = document.getElementById('catMax').value;
             const name = document.getElementById('catName').value;
-            if (!min || !max || !name) { alert('Заполните все поля категории'); return; }
+            if (!min || !max || !name) { alert('Заполните все поля'); return; }
             ageCategoriesBuffer.push({ min: parseInt(min), max: parseInt(max), name: name });
             document.getElementById('catMin').value = '';
             document.getElementById('catMax').value = '';
@@ -224,16 +217,15 @@
         }
         
         async function createCompetition() {
-            if (!supabaseClient) { alert('Сначала подключитесь к Supabase'); return; }
+            if (!supabaseClient) { alert('Подключитесь к Supabase'); return; }
             const name = document.getElementById('newCompName').value.trim();
             const date = document.getElementById('newCompDate').value;
             if (!name || !date) { alert('Заполните название и дату'); return; }
-            if (ageCategoriesBuffer.length === 0) { alert('Добавьте хотя бы одну возрастную категорию'); return; }
+            if (ageCategoriesBuffer.length === 0) { alert('Добавьте категорию'); return; }
             const newComp = {
                 id: Date.now(),
-                name: name,
-                date: date,
-                certificate_page_url: CERTIFICATE_PAGE_URL,
+                name: name, date: date,
+                certificate_page_url: `${BASE_URL}participant.html`,
                 age_categories: ageCategoriesBuffer,
                 created_at: new Date()
             };
@@ -264,7 +256,7 @@
                     <td><span class="status-badge">${p.place !== 'Не определено' ? '✅ Готово' : '⏳ Ожидает'}</span></td>
                 </tr>
             `).join('');
-            document.getElementById('resultsStats').innerHTML = `👥 Всего участников: ${participantsList.length} | 🏆 С результатами: ${participantsList.filter(p => p.place !== 'Не определено').length}`;
+            document.getElementById('resultsStats').innerHTML = `👥 Всего: ${participantsList.length} | 🏆 С результатами: ${participantsList.filter(p => p.place !== 'Не определено').length}`;
         }
         
         async function updatePlace(participantId, place) {
@@ -273,8 +265,8 @@
         }
         
         function exportResultsToCSV() {
-            const headers = ['ФИО', 'Email', 'Дата рождения', 'Категория', 'Место', 'Дата регистрации'];
-            const rows = participantsList.map(p => [p.name, p.email, p.birthdate || '-', p.category || '-', p.place, p.registered_at || '-']);
+            const headers = ['ФИО', 'Email', 'Дата рождения', 'Категория', 'Место'];
+            const rows = participantsList.map(p => [p.name, p.email, p.birthdate || '-', p.category || '-', p.place]);
             const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
             const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement('a');
