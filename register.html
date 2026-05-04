@@ -28,7 +28,6 @@
         <div id="errorBlock" style="display: none;" class="error-page">
             <h2>❌ Ошибка</h2>
             <p id="errorMessage"></p>
-            <p>Пожалуйста, обратитесь к организатору соревнований.</p>
         </div>
         <div id="formBlock">
             <h1>Регистрация на соревнования</h1>
@@ -47,33 +46,27 @@
         </div>
     </div>
     <script>
-        // ========== КЛЮЧИ SUPABASE (ЗАФИКСИРОВАНЫ) ==========
         const SUPABASE_URL = "https://kcpyfbdslhisfqqobvje.supabase.co";
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjcHlmYmRzbGhpc2ZxcW9idmplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1Mjg1OTAsImV4cCI6MjA5MzEwNDU5MH0.Y4861DLKZ0FG3_rkosf_qH0w5P2F_hdheIBOfTTSmsI";
-        // =================================================
         
         let supabaseClient = null;
         let currentCompetition = null;
         
-        function getCompId() { 
+        function getCompId() {
             const urlParams = new URLSearchParams(window.location.search);
-            return parseInt(urlParams.get('comp')); 
+            return parseInt(urlParams.get('comp'));
         }
         
         async function init() {
             supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
             const compId = getCompId();
-            if (!compId || isNaN(compId)) { 
-                showError('Ссылка недействительна. Отсутствует ID соревнования.'); 
-                return false; 
-            }
+            if (!compId || isNaN(compId)) { showError('Ссылка недействительна.'); return; }
             const { data, error } = await supabaseClient.from('competitions').select('*').eq('id', compId);
-            if (error) { console.error(error); showError('Ошибка подключения к базе данных'); return false; }
-            if (!data || data.length === 0) { showError('Соревнование не найдено. Проверьте ссылку.'); return false; }
+            if (error || !data || data.length === 0) { showError('Соревнование не найдено.'); return; }
             currentCompetition = data[0];
             document.getElementById('compNameDisplay').innerHTML = `🏆 ${currentCompetition.name}`;
             document.getElementById('competition').value = currentCompetition.name;
-            return true;
+            document.getElementById('formBlock').style.display = 'block';
         }
         
         function calculateCategory() {
@@ -125,6 +118,7 @@
             document.getElementById('competition').value = currentCompetition.name;
         });
         
+        document.getElementById('formBlock').style.display = 'none';
         init();
     </script>
 </body>
