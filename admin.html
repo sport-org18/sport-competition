@@ -6,39 +6,36 @@
     <title>Панель администратора</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; }
         body { background: #f5f5f5; padding: 20px; }
         .container { max-width: 1200px; margin: 0 auto; }
         h1 { color: #333; margin-bottom: 20px; }
-        .tab-menu { display: flex; gap: 10px; margin-bottom: 20px; }
+        .tab-menu { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
         .tab { padding: 10px 20px; background: white; border-radius: 5px; cursor: pointer; border: none; font-size: 16px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         .tab.active { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
         .card { background: white; border-radius: 10px; padding: 25px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
         .form-group { margin-bottom: 20px; }
         label { display: block; margin-bottom: 8px; color: #555; font-weight: 500; }
         input, select { width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 16px; }
-        .btn { padding: 10px 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; }
+        .btn { padding: 10px 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; margin-right: 10px; margin-top: 10px; }
         .btn-danger { background: #e74c3c; }
         .btn-success { background: #27ae60; }
-        .competition-card { border: 1px solid #e0e0e0; border-radius: 10px; padding: 15px; margin-bottom: 15px; }
-        .competition-title { font-size: 18px; font-weight: bold; }
+        .competition-card { border: 1px solid #e0e0e0; border-radius: 10px; padding: 15px; margin-bottom: 15px; background: #fafafa; }
+        .competition-title { font-size: 18px; font-weight: bold; color: #333; }
         .stats { font-size: 14px; color: #666; margin-top: 10px; }
         .age-category-item { display: inline-block; background: #e9ecef; padding: 5px 10px; border-radius: 15px; margin: 3px; font-size: 12px; }
         table { width: 100%; border-collapse: collapse; }
         th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
-        th { background: #f8f9fa; }
+        th { background: #f8f9fa; font-weight: 600; }
         .place-input { width: 80px; padding: 5px; }
         .status-badge { padding: 3px 8px; border-radius: 12px; font-size: 11px; background: #d4edda; color: #155724; }
-        .flex-row { display: flex; gap: 10px; flex-wrap: wrap; }
+        .flex-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
         .message { padding: 15px; border-radius: 10px; margin-top: 20px; display: none; }
         .message.success { background: #d4edda; color: #155724; display: block; }
         .message.error { background: #f8d7da; color: #721c24; display: block; }
         .loading { text-align: center; padding: 20px; color: #667eea; }
+        .link-box { background: #f0f0f0; padding: 10px; border-radius: 5px; font-size: 12px; word-break: break-all; margin-top: 10px; }
+        code { background: #eee; padding: 2px 5px; border-radius: 3px; }
     </style>
 </head>
 <body>
@@ -81,10 +78,6 @@
                     <input type="date" id="newCompDate">
                 </div>
                 <div class="form-group">
-                    <label>Ссылка на страницу получения грамоты</label>
-                    <input type="text" id="certificatePageUrl" placeholder="https://ваш-сайт/participant.html">
-                </div>
-                <div class="form-group">
                     <label>Возрастные категории</label>
                     <div class="flex-row" style="margin-bottom: 10px;">
                         <input type="number" id="catMin" placeholder="Мин" style="width: 80px;">
@@ -113,7 +106,7 @@
                 <div id="resultsStats" class="stats"></div>
                 <div class="table-container">
                     <table id="resultsTable">
-                        <thead><tr><th>ФИО</th><th>Email</th><th>Дата рождения</th><th>Категория</th><th>Место</th></tr></thead>
+                        <thead><tr><th>ФИО</th><th>Email</th><th>Дата рождения</th><th>Категория</th><th>Место</th><th>Статус</th></tr></thead>
                         <tbody id="resultsTableBody"></tbody>
                     </table>
                 </div>
@@ -123,6 +116,9 @@
     </div>
 
     <script>
+        // ФИКСИРОВАННАЯ ССЫЛКА НА СТРАНИЦУ ПОЛУЧЕНИЯ ГРАМОТЫ (ОДНА ДЛЯ ВСЕХ)
+        const CERTIFICATE_PAGE_URL = "https://sport-org18.github.io/sport-competition/participant.html";
+        
         let supabaseClient = null;
         let competitionsList = [];
         let participantsList = [];
@@ -131,20 +127,12 @@
         function initSupabase() {
             const url = document.getElementById('supabaseUrl').value.trim();
             const key = document.getElementById('supabaseKey').value.trim();
-            
-            if (!url || !key) {
-                alert('Введите URL и anon key');
-                return;
-            }
-            
+            if (!url || !key) { alert('Введите URL и anon key'); return; }
             supabaseClient = supabase.createClient(url, key);
             localStorage.setItem('supabase_url', url);
             localStorage.setItem('supabase_key', key);
-            
             document.getElementById('connStatus').className = 'message success';
             document.getElementById('connStatus').textContent = '✅ Подключено! Теперь можете работать с соревнованиями.';
-            document.getElementById('connStatus').style.display = 'block';
-            
             loadCompetitions();
         }
         
@@ -156,6 +144,8 @@
                 document.getElementById('supabaseKey').value = key;
                 supabaseClient = supabase.createClient(url, key);
                 loadCompetitions();
+                document.getElementById('connStatus').className = 'message success';
+                document.getElementById('connStatus').textContent = '✅ Подключено автоматически';
             }
         }
         
@@ -164,21 +154,40 @@
             const { data, error } = await supabaseClient.from('competitions').select('*').order('created_at', { ascending: false });
             if (error) { console.error(error); return; }
             competitionsList = data || [];
+            await loadAllParticipants();
             updateCompetitionsList();
             updateCompetitionSelect();
         }
         
+        async function loadAllParticipants() {
+            if (!supabaseClient) return;
+            const { data } = await supabaseClient.from('participants').select('*');
+            participantsList = data || [];
+        }
+        
         function updateCompetitionsList() {
             const container = document.getElementById('competitionsList');
-            if (competitionsList.length === 0) { container.innerHTML = '<p>Нет соревнований</p>'; return; }
-            container.innerHTML = competitionsList.map(comp => `
-                <div class="competition-card">
-                    <div class="competition-title">🏅 ${comp.name}</div>
-                    <div class="stats">📅 Дата: ${comp.date} | 👥 Участников: ${participantsList.filter(p => p.competition_id === comp.id).length}</div>
-                    <div class="stats">🔗 Ссылка: ${window.location.origin}${window.location.pathname.replace('admin.html', 'register.html')}?comp=${comp.id}</div>
-                    <button class="btn" onclick="deleteCompetition(${comp.id})" style="margin-top:10px; background:#e74c3c;">Удалить</button>
-                </div>
-            `).join('');
+            if (competitionsList.length === 0) { container.innerHTML = '<p>Нет соревнований. Создайте первое!</p>'; return; }
+            container.innerHTML = competitionsList.map(comp => {
+                const participantsCount = participantsList.filter(p => p.competition_id === comp.id).length;
+                const regLink = `${window.location.origin}${window.location.pathname.replace('admin.html', 'register.html')}?comp=${comp.id}`;
+                return `
+                    <div class="competition-card">
+                        <div class="competition-title">🏅 ${comp.name}</div>
+                        <div class="stats">📅 Дата: ${comp.date} | 👥 Участников: ${participantsCount}</div>
+                        <div class="link-box">🔗 Ссылка для регистрации: <br><code>${regLink}</code></div>
+                        <button class="btn" onclick="deleteCompetition(${comp.id})" style="background:#e74c3c; margin-top:10px;">🗑️ Удалить соревнование</button>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        async function deleteCompetition(id) {
+            if (!confirm('Удалить соревнование? Все данные участников будут удалены безвозвратно!')) return;
+            await supabaseClient.from('participants').delete().eq('competition_id', id);
+            await supabaseClient.from('competitions').delete().eq('id', id);
+            loadCompetitions();
+            alert('Соревнование удалено');
         }
         
         function updateCompetitionSelect() {
@@ -190,45 +199,43 @@
             const min = document.getElementById('catMin').value;
             const max = document.getElementById('catMax').value;
             const name = document.getElementById('catName').value;
-            if (!min || !max || !name) { alert('Заполните все поля'); return; }
-            ageCategoriesBuffer.push({ min: parseInt(min), max: parseInt(max), name });
+            if (!min || !max || !name) { alert('Заполните все поля категории'); return; }
+            ageCategoriesBuffer.push({ min: parseInt(min), max: parseInt(max), name: name });
             document.getElementById('catMin').value = '';
             document.getElementById('catMax').value = '';
             document.getElementById('catName').value = '';
-            const container = document.getElementById('ageCategoriesList');
-            container.innerHTML = ageCategoriesBuffer.map((cat, idx) => `<div class="age-category-item">${cat.min}-${cat.max} лет: ${cat.name} <button onclick="removeAgeCategory(${idx})">✖</button></div>`).join('');
+            updateAgeCategoriesDisplay();
         }
         
         function removeAgeCategory(idx) { ageCategoriesBuffer.splice(idx, 1); updateAgeCategoriesDisplay(); }
+        
         function updateAgeCategoriesDisplay() {
             const container = document.getElementById('ageCategoriesList');
-            container.innerHTML = ageCategoriesBuffer.map((cat, idx) => `<div class="age-category-item">${cat.min}-${cat.max} лет: ${cat.name} <button onclick="removeAgeCategory(${idx})">✖</button></div>`).join('');
+            container.innerHTML = ageCategoriesBuffer.map((cat, idx) => `<div class="age-category-item">${cat.min}-${cat.max} лет: ${cat.name} <button onclick="removeAgeCategory(${idx})" style="background:none; border:none; cursor:pointer;">✖</button></div>`).join('');
         }
         
         async function createCompetition() {
             if (!supabaseClient) { alert('Сначала подключитесь к Supabase'); return; }
             const name = document.getElementById('newCompName').value.trim();
             const date = document.getElementById('newCompDate').value;
-            const certUrl = document.getElementById('certificatePageUrl').value.trim();
             if (!name || !date) { alert('Заполните название и дату'); return; }
-            if (ageCategoriesBuffer.length === 0) { alert('Добавьте хотя бы одну категорию'); return; }
-            const newComp = { id: Date.now(), name, date, certificate_page_url: certUrl, age_categories: ageCategoriesBuffer, created_at: new Date() };
+            if (ageCategoriesBuffer.length === 0) { alert('Добавьте хотя бы одну возрастную категорию'); return; }
+            const newComp = {
+                id: Date.now(),
+                name: name,
+                date: date,
+                certificate_page_url: CERTIFICATE_PAGE_URL,
+                age_categories: ageCategoriesBuffer,
+                created_at: new Date()
+            };
             const { error } = await supabaseClient.from('competitions').insert([newComp]);
             if (error) { alert('Ошибка: ' + error.message); return; }
             ageCategoriesBuffer = [];
             updateAgeCategoriesDisplay();
             document.getElementById('newCompName').value = '';
             document.getElementById('newCompDate').value = '';
-            document.getElementById('certificatePageUrl').value = '';
             loadCompetitions();
             alert('Соревнование создано!');
-        }
-        
-        async function deleteCompetition(id) {
-            if (!confirm('Удалить соревнование?')) return;
-            await supabaseClient.from('competitions').delete().eq('id', id);
-            await supabaseClient.from('participants').delete().eq('competition_id', id);
-            loadCompetitions();
         }
         
         async function loadParticipantsForResults() {
@@ -237,25 +244,33 @@
             const { data } = await supabaseClient.from('participants').select('*').eq('competition_id', compId);
             participantsList = data || [];
             const tbody = document.getElementById('resultsTableBody');
+            if (participantsList.length === 0) { tbody.innerHTML = '<tr><td colspan="6">Нет участников</td></tr>'; return; }
             tbody.innerHTML = participantsList.map(p => `
-                <tr><td>${p.name}</td><td>${p.email}</td><td>${p.birthdate || '-'}</td><td>${p.category || '-'}</td>
-                <td><input type="text" class="place-input" value="${p.place}" onchange="updatePlace(${p.id}, this.value)"></td></tr>
+                <tr>
+                    <td>${p.name}</td>
+                    <td>${p.email}</td>
+                    <td>${p.birthdate || '-'}</td>
+                    <td>${p.category || '-'}</td>
+                    <td><input type="text" class="place-input" value="${p.place}" onchange="updatePlace(${p.id}, this.value)"></td>
+                    <td><span class="status-badge">${p.place !== 'Не определено' ? '✅ Готово' : '⏳ Ожидает'}</span></td>
+                </tr>
             `).join('');
-            document.getElementById('resultsStats').innerHTML = `👥 Всего: ${participantsList.length}`;
+            document.getElementById('resultsStats').innerHTML = `👥 Всего участников: ${participantsList.length} | 🏆 С результатами: ${participantsList.filter(p => p.place !== 'Не определено').length}`;
         }
         
         async function updatePlace(participantId, place) {
             await supabaseClient.from('participants').update({ place: place }).eq('id', participantId);
+            loadParticipantsForResults();
         }
         
         function exportResultsToCSV() {
-            const headers = ['ФИО', 'Email', 'Категория', 'Место'];
-            const rows = participantsList.map(p => [p.name, p.email, p.category, p.place]);
+            const headers = ['ФИО', 'Email', 'Дата рождения', 'Категория', 'Место', 'Дата регистрации'];
+            const rows = participantsList.map(p => [p.name, p.email, p.birthdate || '-', p.category || '-', p.place, p.registered_at || '-']);
             const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
             const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
-            link.download = 'results.csv';
+            link.download = `results_${new Date().toISOString().slice(0,10)}.csv`;
             link.click();
         }
         
@@ -266,6 +281,7 @@
             document.getElementById('competitions-tab').style.display = tabName === 'competitions' ? 'block' : 'none';
             document.getElementById('results-tab').style.display = tabName === 'results' ? 'block' : 'none';
             if (tabName === 'competitions') loadCompetitions();
+            if (tabName === 'results') updateCompetitionSelect();
         }
         
         loadSavedSettings();
