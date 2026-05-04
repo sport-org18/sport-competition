@@ -28,6 +28,7 @@
         <div id="errorBlock" style="display: none;" class="error-page">
             <h2>❌ Ошибка</h2>
             <p id="errorMessage"></p>
+            <p>Пожалуйста, обратитесь к организатору соревнований.</p>
         </div>
         <div id="formBlock">
             <h1>Регистрация на соревнования</h1>
@@ -46,22 +47,29 @@
         </div>
     </div>
     <script>
-        // ========== ВСТАВЬТЕ ВАШИ КЛЮЧИ ==========
+        // ========== КЛЮЧИ SUPABASE (ЗАФИКСИРОВАНЫ) ==========
         const SUPABASE_URL = "https://kcpyfbdslhisfqqobvje.supabase.co";
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjcHlmYmRzbGhpc2ZxcW9idmplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYwMjc2OTksImV4cCI6MjA2MTYwMzY5OX0.cZCZJvqPuJoQIqQnYoNEvO9AR8RrVgC76WdnGUV3T2g";
-        // =======================================
+        // =================================================
         
         let supabaseClient = null;
         let currentCompetition = null;
         
-        function getCompId() { return parseInt(new URLSearchParams(window.location.search).get('comp')); }
+        function getCompId() { 
+            const urlParams = new URLSearchParams(window.location.search);
+            return parseInt(urlParams.get('comp')); 
+        }
         
         async function init() {
             supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
             const compId = getCompId();
-            if (!compId) { showError('Ссылка недействительна.'); return false; }
+            if (!compId || isNaN(compId)) { 
+                showError('Ссылка недействительна. Отсутствует ID соревнования.'); 
+                return false; 
+            }
             const { data, error } = await supabaseClient.from('competitions').select('*').eq('id', compId);
-            if (error || !data || data.length === 0) { showError('Соревнование не найдено.'); return false; }
+            if (error) { console.error(error); showError('Ошибка подключения к базе данных'); return false; }
+            if (!data || data.length === 0) { showError('Соревнование не найдено. Проверьте ссылку.'); return false; }
             currentCompetition = data[0];
             document.getElementById('compNameDisplay').innerHTML = `🏆 ${currentCompetition.name}`;
             document.getElementById('competition').value = currentCompetition.name;
