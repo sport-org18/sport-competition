@@ -35,7 +35,9 @@
         .message.error { background: #f8d7da; color: #721c24; display: block; }
         .loading { text-align: center; padding: 20px; color: #667eea; }
         .link-box { background: #f0f0f0; padding: 10px; border-radius: 5px; font-size: 12px; word-break: break-all; margin-top: 10px; }
-        code { background: #eee; padding: 2px 5px; border-radius: 3px; }
+        .link-box a { color: #667eea; text-decoration: none; }
+        .link-box a:hover { text-decoration: underline; }
+        code { background: #eee; padding: 2px 5px; border-radius: 3px; font-size: 11px; }
     </style>
 </head>
 <body>
@@ -116,7 +118,7 @@
     </div>
 
     <script>
-        // ФИКСИРОВАННАЯ ССЫЛКА НА СТРАНИЦУ ПОЛУЧЕНИЯ ГРАМОТЫ (ОДНА ДЛЯ ВСЕХ)
+        // ФИКСИРОВАННАЯ ССЫЛКА НА СТРАНИЦУ ПОЛУЧЕНИЯ ГРАМОТЫ
         const CERTIFICATE_PAGE_URL = "https://sport-org18.github.io/sport-competition/participant.html";
         
         let supabaseClient = null;
@@ -175,7 +177,14 @@
                     <div class="competition-card">
                         <div class="competition-title">🏅 ${comp.name}</div>
                         <div class="stats">📅 Дата: ${comp.date} | 👥 Участников: ${participantsCount}</div>
-                        <div class="link-box">🔗 Ссылка для регистрации: <br><code>${regLink}</code></div>
+                        <div class="link-box">
+                            🔗 Ссылка для РЕГИСТРАЦИИ:<br>
+                            <a href="${regLink}" target="_blank">${regLink}</a>
+                        </div>
+                        <div class="link-box" style="background: #e8f0fe;">
+                            📄 Ссылка для ПОЛУЧЕНИЯ ГРАМОТЫ:<br>
+                            <a href="${CERTIFICATE_PAGE_URL}" target="_blank">${CERTIFICATE_PAGE_URL}</a>
+                        </div>
                         <button class="btn" onclick="deleteCompetition(${comp.id})" style="background:#e74c3c; margin-top:10px;">🗑️ Удалить соревнование</button>
                     </div>
                 `;
