@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Получить грамоту</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; }
@@ -14,31 +15,51 @@
         .form-group { margin-bottom: 20px; }
         label { display: block; margin-bottom: 8px; font-weight: 500; }
         input, select { width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 16px; }
-        button { width: 100%; padding: 14px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 10px; cursor: pointer; }
+        button { width: 100%; padding: 14px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 10px; cursor: pointer; font-size: 16px; margin-top: 10px; }
         .message { margin-top: 20px; padding: 15px; border-radius: 10px; display: none; }
         .success { background: #d4edda; color: #155724; }
         .error { background: #f8d7da; color: #721c24; }
         .info { background: #d1ecf1; color: #0c5460; }
         .loading { text-align: center; margin: 20px 0; }
+        
+        /* Стили для грамоты (в скрытом блоке) */
+        .certificate-template {
+            position: absolute;
+            left: -9999px;
+            top: -9999px;
+            width: 800px;
+            background: white;
+            font-family: 'Times New Roman', 'Georgia', serif;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>📄 Получить грамоту</h1>
-        <div class="form-group"><label>Выберите соревнование</label><select id="competitionSelect" onchange="clearResult()"></select></div>
-        <div class="form-group"><label>Введите ваш email</label><input type="email" id="emailInput" placeholder="email@example.com"></div>
+        <div class="form-group">
+            <label>Выберите соревнование</label>
+            <select id="competitionSelect" onchange="clearResult()"></select>
+        </div>
+        <div class="form-group">
+            <label>Введите ваш email</label>
+            <input type="email" id="emailInput" placeholder="email@example.com">
+        </div>
         <button onclick="findParticipant()">Найти грамоту</button>
-        <div id="loading" class="loading" style="display: none;">⏳ Поиск...</div>
+        <div id="loading" class="loading" style="display: none;">⏳ Поиск и создание грамоты...</div>
         <div id="result" class="message"></div>
     </div>
+
+    <!-- Скрытый блок для шаблона грамоты -->
+    <div id="certificateTemplate" class="certificate-template"></div>
+
     <script>
-        // ========== ВСТАВЬТЕ ВАШИ КЛЮЧИ ==========
+        // КЛЮЧИ SUPABASE
         const SUPABASE_URL = "https://kcpyfbdslhisfqqobvje.supabase.co";
-        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjcHlmYmRzbGhpc2ZxcW9idmplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1Mjg1OTAsImV4cCI6MjA5MzEwNDU5MH0.Y4861DLKZ0FG3_rkosf_qH0w5P2F_hdheIBOfTTSmsI";
-        // =======================================
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjcHlmYmRzbGhpc2ZxcW9idmplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYwMjc2OTksImV4cCI6MjA2MTYwMzY5OX0.cZCZJvqPuJoQIqQnYoNEvO9AR8RrVgC76WdnGUV3T2g";
         
         let supabaseClient = null;
         let competitions = [];
+        let currentParticipant = null;
         
         async function init() {
             supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -55,34 +76,99 @@
         async function findParticipant() {
             const compId = document.getElementById('competitionSelect').value;
             const email = document.getElementById('emailInput').value.trim();
+            
             if (!compId || !email) { alert('Выберите соревнование и введите email'); return; }
+            
             document.getElementById('loading').style.display = 'block';
             document.getElementById('result').style.display = 'none';
-            const { data, error } = await supabaseClient.from('participants').select('*').eq('competition_id', parseInt(compId)).eq('email', email);
+            
+            const { data } = await supabaseClient.from('participants').select('*').eq('competition_id', parseInt(compId)).eq('email', email);
+            
             document.getElementById('loading').style.display = 'none';
-            if (error || !data || data.length === 0) { showMessage('Участник с таким email не найден в этом соревновании', 'error'); return; }
+            
+            if (!data || data.length === 0) { 
+                showMessage('Участник с таким email не найден в этом соревновании', 'error'); 
+                return; 
+            }
+            
             const p = data[0];
-            if (p.place === 'Не определено') { showMessage('Результаты ещё не опубликованы. Зайдите позже.', 'info'); return; }
-            generatePDF(p);
+            if (p.place === 'Не определено') { 
+                showMessage('Результаты ещё не опубликованы. Зайдите позже.', 'info'); 
+                return; 
+            }
+            
+            currentParticipant = p;
+            await generateAndDownloadPDF();
         }
         
-        async function generatePDF(p) {
-            const comp = competitions.find(c => c.id === p.competition_id);
+        async function generateAndDownloadPDF() {
+            const comp = competitions.find(c => c.id === currentParticipant.competition_id);
+            const dateStr = comp ? comp.date : new Date().toLocaleDateString('ru-RU');
+            
+            // HTML-шаблон грамоты с русским текстом
+            const certificateHTML = `
+                <div style="width: 800px; height: 566px; background: #fffef7; position: relative; padding: 30px; box-sizing: border-box;">
+                    <div style="border: 8px solid #ffd700; height: 100%; box-sizing: border-box; position: relative;">
+                        <div style="border: 2px solid #ffd700; margin: 10px; height: calc(100% - 20px); position: relative;">
+                            <div style="text-align: center; padding: 30px 20px;">
+                                <div style="font-size: 14px; color: #b8860b; letter-spacing: 2px;">РОССИЙСКАЯ ФЕДЕРАЦИЯ</div>
+                                <div style="font-size: 42px; font-weight: bold; color: #b8860b; margin: 20px 0 10px;">ГРАМОТА</div>
+                                <div style="width: 150px; height: 2px; background: #ffd700; margin: 0 auto 20px;"></div>
+                                <div style="font-size: 22px; margin: 30px 0 20px;">НАГРАЖДАЕТСЯ</div>
+                                <div style="font-size: 32px; font-weight: bold; margin: 20px 0; border-bottom: 2px solid #ffd700; display: inline-block; padding: 0 30px 10px;">${currentParticipant.name}</div>
+                                <div style="font-size: 24px; margin: 30px 0 20px; color: #b8860b;">занявший(ая) ${currentParticipant.place} место</div>
+                                <div style="font-size: 18px; margin: 20px 0;">в соревнованиях «${comp ? comp.name : ''}»</div>
+                                <div style="font-size: 16px; margin: 40px 0 20px;">${dateStr}</div>
+                            </div>
+                            <div style="position: absolute; bottom: 20px; left: 30px; font-size: 12px;">
+                                Председатель оргкомитета<br>
+                                __________________<br>
+                                И.О. Фамилия
+                            </div>
+                            <div style="position: absolute; bottom: 20px; right: 50px; font-size: 12px; text-align: right;">
+                                М.П.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Вставляем в скрытый элемент
+            const templateDiv = document.getElementById('certificateTemplate');
+            templateDiv.innerHTML = certificateHTML;
+            
+            showMessage('⏳ Создание грамоты...', 'info');
+            
+            // Ждём рендеринга
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            // Делаем скриншот
+            const element = templateDiv.firstElementChild;
+            const canvas = await html2canvas(element, {
+                scale: 3,
+                backgroundColor: '#ffffff',
+                logging: false,
+                useCORS: true
+            });
+            
+            // Создаём PDF
             const { jsPDF } = window.jspdf;
-            const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-            doc.setFillColor(255, 215, 0); doc.rect(0, 0, 297, 210, 'F');
-            doc.setFillColor(255, 255, 255); doc.rect(5, 5, 287, 200, 'F');
-            doc.setDrawColor(255, 215, 0); doc.setLineWidth(2); doc.rect(10, 10, 277, 190);
-            doc.setFontSize(48); doc.text('ГРАМОТА', 148.5, 45, { align: 'center' });
-            doc.setFontSize(18); doc.text('НАГРАЖДАЕТСЯ', 148.5, 75, { align: 'center' });
-            doc.setFontSize(26); doc.text(p.name, 148.5, 100, { align: 'center' });
-            doc.setFontSize(18); doc.text(`занявший(ая) ${p.place} место`, 148.5, 125, { align: 'center' });
-            doc.setFontSize(16); doc.text(`в соревнованиях "${comp ? comp.name : ''}"`, 148.5, 145, { align: 'center' });
-            doc.setFontSize(12); doc.text(comp ? comp.date : '', 148.5, 170, { align: 'center' });
-            doc.setFontSize(10); doc.text('Председатель оргкомитета', 70, 190); doc.text('__________________', 70, 195);
-            doc.text('М.П.', 240, 190);
-            doc.save(`Грамота_${p.name}.pdf`);
-            showMessage('Грамота скачана!', 'success');
+            const imgData = canvas.toDataURL('image/png');
+            const doc = new jsPDF({
+                orientation: 'landscape',
+                unit: 'mm',
+                format: 'a4'
+            });
+            
+            const imgWidth = 297;
+            const imgHeight = (canvas.height * imgWidth) / canvas.width;
+            
+            doc.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+            doc.save(`Грамота_${currentParticipant.name}.pdf`);
+            
+            // Очищаем
+            templateDiv.innerHTML = '';
+            showMessage('✅ Грамота скачана!', 'success');
         }
         
         function showMessage(msg, type) {
@@ -91,7 +177,11 @@
             div.textContent = msg;
             div.style.display = 'block';
         }
-        function clearResult() { document.getElementById('result').style.display = 'none'; }
+        
+        function clearResult() { 
+            document.getElementById('result').style.display = 'none'; 
+        }
+        
         init();
     </script>
 </body>
