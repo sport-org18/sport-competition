@@ -11,18 +11,20 @@
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; }
         body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
         .container { background: white; border-radius: 20px; width: 100%; max-width: 500px; padding: 40px; }
-        h1 { text-align: center; margin-bottom: 30px; }
+        h1 { text-align: center; margin-bottom: 10px; }
+        .comp-name { text-align: center; color: #667eea; margin-bottom: 30px; font-weight: bold; font-size: 18px; }
         .form-group { margin-bottom: 20px; }
         label { display: block; margin-bottom: 8px; font-weight: 500; }
-        input, select { width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 16px; }
+        input { width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 16px; }
         button { width: 100%; padding: 14px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 10px; cursor: pointer; font-size: 16px; margin-top: 10px; }
         .message { margin-top: 20px; padding: 15px; border-radius: 10px; display: none; }
         .success { background: #d4edda; color: #155724; }
         .error { background: #f8d7da; color: #721c24; }
         .info { background: #d1ecf1; color: #0c5460; }
         .loading { text-align: center; margin: 20px 0; }
+        .error-page { text-align: center; padding: 20px; }
+        .error-page h2 { color: #e74c3c; margin-bottom: 15px; }
         
-        /* Стили для грамоты (в скрытом блоке) */
         .certificate-template {
             position: absolute;
             left: -9999px;
@@ -35,21 +37,24 @@
 </head>
 <body>
     <div class="container">
-        <h1>📄 Получить грамоту</h1>
-        <div class="form-group">
-            <label>Выберите соревнование</label>
-            <select id="competitionSelect" onchange="clearResult()"></select>
+        <div id="errorBlock" style="display: none;" class="error-page">
+            <h2>❌ Ошибка</h2>
+            <p id="errorMessage"></p>
+            <p>Пожалуйста, обратитесь к организатору соревнований.</p>
         </div>
-        <div class="form-group">
-            <label>Введите ваш email</label>
-            <input type="email" id="emailInput" placeholder="email@example.com">
+        <div id="formBlock">
+            <h1>📄 Получить грамоту</h1>
+            <div id="compNameDisplay" class="comp-name"></div>
+            <div class="form-group">
+                <label>Введите ваш email</label>
+                <input type="email" id="emailInput" placeholder="email@example.com">
+            </div>
+            <button onclick="findParticipant()">Найти грамоту</button>
+            <div id="loading" class="loading" style="display: none;">⏳ Поиск и создание грамоты...</div>
+            <div id="result" class="message"></div>
         </div>
-        <button onclick="findParticipant()">Найти грамоту</button>
-        <div id="loading" class="loading" style="display: none;">⏳ Поиск и создание грамоты...</div>
-        <div id="result" class="message"></div>
     </div>
 
-    <!-- Скрытый блок для шаблона грамоты -->
     <div id="certificateTemplate" class="certificate-template"></div>
 
     <script>
@@ -58,43 +63,62 @@
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjcHlmYmRzbGhpc2ZxcW9idmplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYwMjc2OTksImV4cCI6MjA2MTYwMzY5OX0.cZCZJvqPuJoQIqQnYoNEvO9AR8RrVgC76WdnGUV3T2g";
         
         let supabaseClient = null;
-        let competitions = [];
+        let currentCompetition = null;
         let currentParticipant = null;
+        
+        function getCompId() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return parseInt(urlParams.get('comp'));
+        }
         
         async function init() {
             supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-            await loadCompetitions();
+            const compId = getCompId();
+            
+            if (!compId || isNaN(compId)) {
+                showError('Ссылка недействительна. Отсутствует ID соревнования.');
+                return;
+            }
+            
+            const { data, error } = await supabaseClient.from('competitions').select('*').eq('id', compId);
+            
+            if (error || !data || data.length === 0) {
+                showError('Соревнование не найдено. Проверьте ссылку.');
+                return;
+            }
+            
+            currentCompetition = data[0];
+            document.getElementById('compNameDisplay').innerHTML = `🏆 ${currentCompetition.name}`;
+            document.getElementById('formBlock').style.display = 'block';
         }
         
-        async function loadCompetitions() {
-            const { data } = await supabaseClient.from('competitions').select('*');
-            competitions = data || [];
-            const select = document.getElementById('competitionSelect');
-            select.innerHTML = '<option value="">-- Выберите соревнование --</option>' + competitions.map(c => `<option value="${c.id}">${c.name} (${c.date})</option>`).join('');
+        function showError(msg) {
+            document.getElementById('formBlock').style.display = 'none';
+            document.getElementById('errorMessage').textContent = msg;
+            document.getElementById('errorBlock').style.display = 'block';
         }
         
         async function findParticipant() {
-            const compId = document.getElementById('competitionSelect').value;
             const email = document.getElementById('emailInput').value.trim();
             
-            if (!compId || !email) { alert('Выберите соревнование и введите email'); return; }
+            if (!email) { alert('Введите email'); return; }
             
             document.getElementById('loading').style.display = 'block';
             document.getElementById('result').style.display = 'none';
             
-            const { data } = await supabaseClient.from('participants').select('*').eq('competition_id', parseInt(compId)).eq('email', email);
+            const { data } = await supabaseClient.from('participants').select('*').eq('competition_id', currentCompetition.id).eq('email', email);
             
             document.getElementById('loading').style.display = 'none';
             
-            if (!data || data.length === 0) { 
-                showMessage('Участник с таким email не найден в этом соревновании', 'error'); 
-                return; 
+            if (!data || data.length === 0) {
+                showMessage('Участник с таким email не найден в этом соревновании', 'error');
+                return;
             }
             
             const p = data[0];
-            if (p.place === 'Не определено') { 
-                showMessage('Результаты ещё не опубликованы. Зайдите позже.', 'info'); 
-                return; 
+            if (p.place === 'Не определено') {
+                showMessage('Результаты ещё не опубликованы. Зайдите позже.', 'info');
+                return;
             }
             
             currentParticipant = p;
@@ -102,10 +126,8 @@
         }
         
         async function generateAndDownloadPDF() {
-            const comp = competitions.find(c => c.id === currentParticipant.competition_id);
-            const dateStr = comp ? comp.date : new Date().toLocaleDateString('ru-RU');
+            const dateStr = currentCompetition.date;
             
-            // HTML-шаблон грамоты с русским текстом
             const certificateHTML = `
                 <div style="width: 800px; height: 566px; background: #fffef7; position: relative; padding: 30px; box-sizing: border-box;">
                     <div style="border: 8px solid #ffd700; height: 100%; box-sizing: border-box; position: relative;">
@@ -117,7 +139,7 @@
                                 <div style="font-size: 22px; margin: 30px 0 20px;">НАГРАЖДАЕТСЯ</div>
                                 <div style="font-size: 32px; font-weight: bold; margin: 20px 0; border-bottom: 2px solid #ffd700; display: inline-block; padding: 0 30px 10px;">${currentParticipant.name}</div>
                                 <div style="font-size: 24px; margin: 30px 0 20px; color: #b8860b;">занявший(ая) ${currentParticipant.place} место</div>
-                                <div style="font-size: 18px; margin: 20px 0;">в соревнованиях «${comp ? comp.name : ''}»</div>
+                                <div style="font-size: 18px; margin: 20px 0;">в соревнованиях «${currentCompetition.name}»</div>
                                 <div style="font-size: 16px; margin: 40px 0 20px;">${dateStr}</div>
                             </div>
                             <div style="position: absolute; bottom: 20px; left: 30px; font-size: 12px;">
@@ -133,16 +155,13 @@
                 </div>
             `;
             
-            // Вставляем в скрытый элемент
             const templateDiv = document.getElementById('certificateTemplate');
             templateDiv.innerHTML = certificateHTML;
             
             showMessage('⏳ Создание грамоты...', 'info');
             
-            // Ждём рендеринга
             await new Promise(resolve => setTimeout(resolve, 100));
             
-            // Делаем скриншот
             const element = templateDiv.firstElementChild;
             const canvas = await html2canvas(element, {
                 scale: 3,
@@ -151,7 +170,6 @@
                 useCORS: true
             });
             
-            // Создаём PDF
             const { jsPDF } = window.jspdf;
             const imgData = canvas.toDataURL('image/png');
             const doc = new jsPDF({
@@ -166,7 +184,6 @@
             doc.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
             doc.save(`Грамота_${currentParticipant.name}.pdf`);
             
-            // Очищаем
             templateDiv.innerHTML = '';
             showMessage('✅ Грамота скачана!', 'success');
         }
@@ -178,10 +195,8 @@
             div.style.display = 'block';
         }
         
-        function clearResult() { 
-            document.getElementById('result').style.display = 'none'; 
-        }
-        
+        // Скрываем форму до загрузки соревнования
+        document.getElementById('formBlock').style.display = 'none';
         init();
     </script>
 </body>
