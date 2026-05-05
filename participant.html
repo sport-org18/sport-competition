@@ -75,4 +75,120 @@
         function showError(msg) {
             document.getElementById('formBlock').style.display = 'none';
             document.getElementById('errorMessage').textContent = msg;
-            document.getElementById('errorBlock').style.display = 'block
+            document.getElementById('errorBlock').style.display = 'block';
+        }
+        
+        async function findParticipant() {
+            const email = document.getElementById('emailInput').value.trim();
+            if (!email) { alert('Введите email'); return; }
+            
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('result').style.display = 'none';
+            
+            const { data } = await supabaseClient.from('participants').select('*').eq('competition_id', currentCompetition.id).eq('email', email);
+            
+            document.getElementById('loading').style.display = 'none';
+            
+            if (!data || data.length === 0) {
+                showMessage('Участник с таким email не найден в этом соревновании', 'error');
+                return;
+            }
+            
+            const p = data[0];
+            if (p.place === 'Не определено') {
+                showMessage('Результаты ещё не опубликованы. Зайдите позже.', 'info');
+                return;
+            }
+            
+            currentParticipant = p;
+            await generateAndDownloadPDF();
+        }
+        
+        async function generateAndDownloadPDF() {
+            const comp = currentCompetition;
+            const p = currentParticipant;
+            
+            // Форматируем место (римские цифры для 1,2,3 или как есть)
+            let placeText = p.place;
+            if (p.place === '1') placeText = 'I';
+            else if (p.place === '2') placeText = 'II';
+            else if (p.place === '3') placeText = 'III';
+            
+            // Собираем результат, если есть
+            const resultHtml = p.result && p.result.trim() !== '' ? `<div style="font-size: 14px; margin: 5px 0;">результат: ${p.result}</div>` : '';
+            
+            // Собираем имена участников
+            const membersHtml = p.member2_name && p.member2_name.trim() !== '' 
+                ? `<div style="font-size: 24px; font-weight: bold; margin: 10px 0;">${p.member1_name}<br>${p.member2_name}</div>`
+                : `<div style="font-size: 24px; font-weight: bold; margin: 10px 0;">${p.member1_name}</div>`;
+            
+            const certificateHTML = `
+                <div style="width: 800px; min-height: 566px; background: white; position: relative; padding: 30px 25px; box-sizing: border-box; font-family: 'Times New Roman', 'Georgia', serif;">
+                    <!-- Шапка -->
+                    <div style="text-align: center; margin-bottom: 15px;">
+                        <div style="font-size: 11px; line-height: 1.4; color: #333;">${(comp.org_header || '').replace(/\n/g, '<br>')}</div>
+                    </div>
+                    
+                    <!-- Основное содержание -->
+                    <div style="text-align: center; margin-top: 15px;">
+                        <div style="font-size: 38px; font-weight: bold; letter-spacing: 4px; margin: 15px 0;">ГРАМОТА</div>
+                        <div style="font-size: 20px; margin: 15px 0;">награждается</div>
+                        
+                        ${membersHtml}
+                        
+                        <div style="font-size: 20px; margin: 10px 0;">команда, занявшая</div>
+                        <div style="font-size: 44px; font-weight: bold; color: #b8860b; margin: 5px 0;">${placeText} место</div>
+                        
+                        <div style="font-size: 16px; margin: 10px 0;">в ${comp.name}</div>
+                        
+                        ${resultHtml}
+                    </div>
+                    
+                    <!-- Подпись (изображение) и печать -->
+                    <div style="margin-top: 30px; display: flex; justify-content: space-between; align-items: flex-end;">
+                        <div style="width: 120px;">
+                            <img src="https://i.ibb.co/7Sg6S7N/image.png" style="width: 100%; height: auto;">
+                        </div>
+                        <div style="text-align: right; font-size: 12px;">
+                            М.П.
+                        </div>
+                    </div>
+                    
+                    <!-- Дата и место проведения -->
+                    <div style="margin-top: 20px; text-align: right; font-size: 12px;">
+                        ${comp.event_place ? comp.event_place + ', ' : ''}${comp.date}
+                    </div>
+                </div>
+            `;
+            
+            const templateDiv = document.getElementById('certificateTemplate');
+            templateDiv.innerHTML = certificateHTML;
+            showMessage('⏳ Создание грамоты...', 'info');
+            await new Promise(resolve => setTimeout(resolve, 200));
+            
+            const element = templateDiv.firstElementChild;
+            const canvas = await html2canvas(element, { scale: 3, backgroundColor: '#ffffff', logging: false });
+            const { jsPDF } = window.jspdf;
+            const imgData = canvas.toDataURL('image/png');
+            const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+            const imgWidth = 210;
+            const imgHeight = (canvas.height * imgWidth) / canvas.width;
+            doc.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+            doc.save(`Грамота_${p.member1_name}.pdf`);
+            
+            templateDiv.innerHTML = '';
+            showMessage('✅ Грамота скачана!', 'success');
+        }
+        
+        function showMessage(msg, type) {
+            const div = document.getElementById('result');
+            div.className = `message ${type}`;
+            div.textContent = msg;
+            div.style.display = 'block';
+        }
+        
+        document.getElementById('formBlock').style.display = 'none';
+        init();
+    </script>
+</body>
+</html>
