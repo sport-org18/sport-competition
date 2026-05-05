@@ -16,7 +16,8 @@
         .card { background: white; border-radius: 10px; padding: 25px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
         .form-group { margin-bottom: 20px; }
         label { display: block; margin-bottom: 8px; color: #555; font-weight: 500; }
-        input, select { width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 16px; }
+        input, select, textarea { width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 16px; }
+        textarea { resize: vertical; }
         .btn { padding: 10px 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; margin-right: 10px; margin-top: 10px; }
         .btn-danger { background: #e74c3c; }
         .btn-success { background: #27ae60; }
@@ -28,6 +29,7 @@
         th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
         th { background: #f8f9fa; font-weight: 600; }
         .place-input { width: 80px; padding: 5px; }
+        .result-input { width: 100px; padding: 5px; }
         .status-badge { padding: 3px 8px; border-radius: 12px; font-size: 11px; background: #d4edda; color: #155724; }
         .flex-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
         .message { padding: 15px; border-radius: 10px; margin-top: 20px; display: none; }
@@ -77,6 +79,22 @@
                     <input type="date" id="newCompDate">
                 </div>
                 <div class="form-group">
+                    <label>Место проведения *</label>
+                    <input type="text" id="eventPlace" placeholder="например: с. Дебёсы">
+                </div>
+                <div class="form-group">
+                    <label>Шапка грамоты (текст организации)</label>
+                    <textarea id="orgHeader" rows="3" placeholder="Управление культуры, молодёжи и спорта&#10;муниципального образования «Муниципальный&#10;округ Дебёсский район Удмуртской Республики»"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Подпись (должность)</label>
+                    <input type="text" id="signPosition" placeholder="например: Начальник">
+                </div>
+                <div class="form-group">
+                    <label>Подпись (ФИО)</label>
+                    <input type="text" id="signName" placeholder="например: А.С. Дурновцев">
+                </div>
+                <div class="form-group">
                     <label>Возрастные категории</label>
                     <div class="flex-row" style="margin-bottom: 10px;">
                         <input type="number" id="catMin" placeholder="Мин" style="width: 80px;">
@@ -104,7 +122,17 @@
                 <div id="resultsStats" class="stats"></div>
                 <div class="table-container">
                     <table id="resultsTable">
-                        <thead><tr><th>ФИО</th><th>Email</th><th>Дата рождения</th><th>Категория</th><th>Место</th><th>Статус</th></tr></thead>
+                        <thead>
+                            <tr>
+                                <th>Участник 1</th>
+                                <th>Участник 2</th>
+                                <th>Email</th>
+                                <th>Категория</th>
+                                <th>Место</th>
+                                <th>Результат</th>
+                                <th>Статус</th>
+                            </tr>
+                        </thead>
                         <tbody id="resultsTableBody"></tbody>
                     </table>
                 </div>
@@ -169,7 +197,7 @@
                 return `
                     <div class="competition-card">
                         <div class="competition-title">🏅 ${comp.name}</div>
-                        <div class="stats">📅 Дата: ${comp.date} | 👥 Участников: ${participantsCount}</div>
+                        <div class="stats">📅 Дата: ${comp.date} | 📍 ${comp.event_place || '—'} | 👥 Участников: ${participantsCount}</div>
                         <div class="link-box">
                             🔗 Ссылка для РЕГИСТРАЦИИ:<br>
                             <a href="${regLink}" target="_blank">${regLink}</a>
@@ -219,11 +247,21 @@
             if (!supabaseClient) { alert('Подключитесь к Supabase'); return; }
             const name = document.getElementById('newCompName').value.trim();
             const date = document.getElementById('newCompDate').value;
+            const eventPlace = document.getElementById('eventPlace').value.trim();
+            const orgHeader = document.getElementById('orgHeader').value.trim();
+            const signPosition = document.getElementById('signPosition').value.trim();
+            const signName = document.getElementById('signName').value.trim();
+            
             if (!name || !date) { alert('Заполните название и дату'); return; }
             if (ageCategoriesBuffer.length === 0) { alert('Добавьте категорию'); return; }
+            
             const newComp = {
                 id: Date.now(),
                 name: name, date: date,
+                event_place: eventPlace,
+                org_header: orgHeader,
+                sign_position: signPosition,
+                sign_name: signName,
                 certificate_page_url: `${BASE_URL}participant.html`,
                 age_categories: ageCategoriesBuffer,
                 created_at: new Date()
@@ -234,6 +272,10 @@
             updateAgeCategoriesDisplay();
             document.getElementById('newCompName').value = '';
             document.getElementById('newCompDate').value = '';
+            document.getElementById('eventPlace').value = '';
+            document.getElementById('orgHeader').value = '';
+            document.getElementById('signPosition').value = '';
+            document.getElementById('signName').value = '';
             loadCompetitions();
             alert('Соревнование создано!');
         }
@@ -244,14 +286,15 @@
             const { data } = await supabaseClient.from('participants').select('*').eq('competition_id', compId);
             participantsList = data || [];
             const tbody = document.getElementById('resultsTableBody');
-            if (participantsList.length === 0) { tbody.innerHTML = '<tr><td colspan="6">Нет участников</tr>'; return; }
+            if (participantsList.length === 0) { tbody.innerHTML = '<td><td colspan="7">Нет участников</td></tr>'; return; }
             tbody.innerHTML = participantsList.map(p => `
                 <tr>
-                    <td>${p.name}</td>
+                    <td>${p.member1_name || '-'}</td>
+                    <td>${p.member2_name || '-'}${p.member2_name ? '' : ''}</td>
                     <td>${p.email}</td>
-                    <td>${p.birthdate || '-'}</td>
                     <td>${p.category || '-'}</td>
                     <td><input type="text" class="place-input" value="${p.place}" onchange="updatePlace(${p.id}, this.value)"></td>
+                    <td><input type="text" class="result-input" value="${p.result || ''}" placeholder="например: 05:34" onchange="updateResult(${p.id}, this.value)"></td>
                     <td><span class="status-badge">${p.place !== 'Не определено' ? '✅ Готово' : '⏳ Ожидает'}</span></td>
                 </tr>
             `).join('');
@@ -263,9 +306,13 @@
             loadParticipantsForResults();
         }
         
+        async function updateResult(participantId, result) {
+            await supabaseClient.from('participants').update({ result: result }).eq('id', participantId);
+        }
+        
         function exportResultsToCSV() {
-            const headers = ['ФИО', 'Email', 'Дата рождения', 'Категория', 'Место'];
-            const rows = participantsList.map(p => [p.name, p.email, p.birthdate || '-', p.category || '-', p.place]);
+            const headers = ['Участник 1', 'Участник 2', 'Email', 'Категория', 'Место', 'Результат'];
+            const rows = participantsList.map(p => [p.member1_name || '-', p.member2_name || '-', p.email, p.category || '-', p.place, p.result || '-']);
             const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
             const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement('a');
