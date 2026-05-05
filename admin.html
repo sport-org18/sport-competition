@@ -80,19 +80,21 @@
                 </div>
                 <div class="form-group">
                     <label>Место проведения *</label>
-                    <input type="text" id="eventPlace" placeholder="например: с. Дебёсы">
+                    <input type="text" id="eventPlace" placeholder="с. Дебёсы" value="с. Дебёсы">
                 </div>
                 <div class="form-group">
                     <label>Шапка грамоты (текст организации)</label>
-                    <textarea id="orgHeader" rows="3" placeholder="Управление культуры, молодёжи и спорта&#10;муниципального образования «Муниципальный&#10;округ Дебёсский район Удмуртской Республики»"></textarea>
+                    <textarea id="orgHeader" rows="3">Управление культуры, молодёжи и спорта
+муниципального образования «Муниципальный
+округ Дебёсский район Удмуртской Республики»</textarea>
                 </div>
                 <div class="form-group">
                     <label>Подпись (должность)</label>
-                    <input type="text" id="signPosition" placeholder="например: Начальник">
+                    <input type="text" id="signPosition" value="Начальник">
                 </div>
                 <div class="form-group">
                     <label>Подпись (ФИО)</label>
-                    <input type="text" id="signName" placeholder="например: А.С. Дурновцев">
+                    <input type="text" id="signName" value="А.С. Дурновцев">
                 </div>
                 <div class="form-group">
                     <label>Возрастные категории</label>
@@ -272,10 +274,6 @@
             updateAgeCategoriesDisplay();
             document.getElementById('newCompName').value = '';
             document.getElementById('newCompDate').value = '';
-            document.getElementById('eventPlace').value = '';
-            document.getElementById('orgHeader').value = '';
-            document.getElementById('signPosition').value = '';
-            document.getElementById('signName').value = '';
             loadCompetitions();
             alert('Соревнование создано!');
         }
@@ -286,7 +284,7 @@
             const { data } = await supabaseClient.from('participants').select('*').eq('competition_id', compId);
             participantsList = data || [];
             const tbody = document.getElementById('resultsTableBody');
-            if (participantsList.length === 0) { tbody.innerHTML = '<td><td colspan="7">Нет участников</td></tr>'; return; }
+            if (participantsList.length === 0) { tbody.innerHTML = '<tr><td colspan="7">Нет участников</tr>'; return; }
             tbody.innerHTML = participantsList.map(p => `
                 <tr>
                     <td>${p.member1_name || '-'}</td>
