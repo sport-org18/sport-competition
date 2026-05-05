@@ -64,9 +64,9 @@
         async function init() {
             supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
             const compId = getCompId();
-            if (!compId || isNaN(compId)) { showError('Ссылка недействительна. Отсутствует ID соревнования.'); return; }
+            if (!compId || isNaN(compId)) { showError('Ссылка недействительна.'); return; }
             const { data, error } = await supabaseClient.from('competitions').select('*').eq('id', compId);
-            if (error || !data || data.length === 0) { showError('Соревнование не найдено. Проверьте ссылку.'); return; }
+            if (error || !data || data.length === 0) { showError('Соревнование не найдено.'); return; }
             currentCompetition = data[0];
             document.getElementById('compNameDisplay').innerHTML = `🏆 ${currentCompetition.name}`;
             document.getElementById('formBlock').style.display = 'block';
@@ -90,13 +90,13 @@
             document.getElementById('loading').style.display = 'none';
             
             if (!data || data.length === 0) {
-                showMessage('Участник с таким email не найден в этом соревновании', 'error');
+                showMessage('Участник не найден', 'error');
                 return;
             }
             
             const p = data[0];
             if (p.place === 'Не определено') {
-                showMessage('Результаты ещё не опубликованы. Зайдите позже.', 'info');
+                showMessage('Результаты ещё не опубликованы', 'info');
                 return;
             }
             
@@ -108,54 +108,50 @@
             const comp = currentCompetition;
             const p = currentParticipant;
             
-            // Форматируем место (римские цифры для 1,2,3 или как есть)
+            // Форматируем место
             let placeText = p.place;
             if (p.place === '1') placeText = 'I';
             else if (p.place === '2') placeText = 'II';
             else if (p.place === '3') placeText = 'III';
             
-            // Собираем результат, если есть
-            const resultHtml = p.result && p.result.trim() !== '' ? `<div style="font-size: 14px; margin: 5px 0;">результат: ${p.result}</div>` : '';
-            
-            // Собираем имена участников
-            const membersHtml = p.member2_name && p.member2_name.trim() !== '' 
-                ? `<div style="font-size: 24px; font-weight: bold; margin: 10px 0;">${p.member1_name}<br>${p.member2_name}</div>`
-                : `<div style="font-size: 24px; font-weight: bold; margin: 10px 0;">${p.member1_name}</div>`;
+            // Результат (время) если есть
+            const resultHtml = p.result && p.result.trim() !== '' ? `<div style="font-size: 14px; margin-top: 10px;">результат: ${p.result}</div>` : '';
             
             const certificateHTML = `
-                <div style="width: 800px; min-height: 566px; background: white; position: relative; padding: 30px 25px; box-sizing: border-box; font-family: 'Times New Roman', 'Georgia', serif;">
+                <div style="width: 800px; min-height: 566px; background: white; position: relative; padding: 30px; box-sizing: border-box; font-family: 'Times New Roman', 'Georgia', serif;">
                     <!-- Шапка -->
-                    <div style="text-align: center; margin-bottom: 15px;">
-                        <div style="font-size: 11px; line-height: 1.4; color: #333;">${(comp.org_header || '').replace(/\n/g, '<br>')}</div>
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <div style="font-size: 11px; line-height: 1.4;">${(comp.org_header || '').replace(/\n/g, '<br>')}</div>
                     </div>
                     
-                    <!-- Основное содержание -->
-                    <div style="text-align: center; margin-top: 15px;">
-                        <div style="font-size: 38px; font-weight: bold; letter-spacing: 4px; margin: 15px 0;">ГРАМОТА</div>
-                        <div style="font-size: 20px; margin: 15px 0;">награждается</div>
-                        
-                        ${membersHtml}
-                        
-                        <div style="font-size: 20px; margin: 10px 0;">команда, занявшая</div>
-                        <div style="font-size: 44px; font-weight: bold; color: #b8860b; margin: 5px 0;">${placeText} место</div>
-                        
-                        <div style="font-size: 16px; margin: 10px 0;">в ${comp.name}</div>
-                        
+                    <!-- Заголовок -->
+                    <div style="text-align: center; margin: 20px 0;">
+                        <div style="font-size: 42px; font-weight: bold; letter-spacing: 4px;">ГРАМОТА</div>
+                    </div>
+                    
+                    <!-- Содержание -->
+                    <div style="text-align: center;">
+                        <div style="font-size: 22px; margin: 15px 0;">награждается</div>
+                        <div style="font-size: 28px; font-weight: bold; margin: 10px 0;">${p.member1_name || ''}</div>
+                        <div style="font-size: 22px; margin: 15px 0;">команда, занявшая</div>
+                        <div style="font-size: 48px; font-weight: bold; color: #b8860b; margin: 10px 0;">${placeText} место</div>
+                        <div style="font-size: 18px; margin: 15px 0;">в ${comp.name}</div>
                         ${resultHtml}
                     </div>
                     
-                    <!-- Подпись (изображение) и печать -->
-                    <div style="margin-top: 30px; display: flex; justify-content: space-between; align-items: flex-end;">
-                        <div style="width: 120px;">
-                            <img src="https://i.ibb.co/7Sg6S7N/image.png" style="width: 100%; height: auto;">
+                    <!-- Подпись и печать -->
+                    <div style="margin-top: 40px; display: flex; justify-content: space-between; align-items: flex-end;">
+                        <div style="text-align: left;">
+                            <div>${comp.sign_position || ''}</div>
+                            <div style="font-weight: bold; margin-top: 5px;">${comp.sign_name || ''}</div>
                         </div>
-                        <div style="text-align: right; font-size: 12px;">
-                            М.П.
+                        <div style="text-align: right;">
+                            <div>М.П.</div>
                         </div>
                     </div>
                     
-                    <!-- Дата и место проведения -->
-                    <div style="margin-top: 20px; text-align: right; font-size: 12px;">
+                    <!-- Дата и место -->
+                    <div style="margin-top: 30px; text-align: right; font-size: 14px;">
                         ${comp.event_place ? comp.event_place + ', ' : ''}${comp.date}
                     </div>
                 </div>
