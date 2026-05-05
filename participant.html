@@ -49,10 +49,8 @@
     <div id="certificateTemplate" class="certificate-template"></div>
 
     <script>
-        // ========== ПРАВИЛЬНЫЕ КЛЮЧИ SUPABASE ==========
         const SUPABASE_URL = "https://kcpyfbdslhisfqqobvje.supabase.co";
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjcHlmYmRzbGhpc2ZxcW9idmplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1Mjg1OTAsImV4cCI6MjA5MzEwNDU5MH0.Y4861DLKZ0FG3_rkosf_qH0w5P2F_hdheIBOfTTSmsI";
-        // ===============================================
         
         let supabaseClient = null;
         let currentCompetition = null;
@@ -66,19 +64,9 @@
         async function init() {
             supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
             const compId = getCompId();
-            
-            if (!compId || isNaN(compId)) {
-                showError('Ссылка недействительна. Отсутствует ID соревнования.');
-                return;
-            }
-            
+            if (!compId || isNaN(compId)) { showError('Ссылка недействительна. Отсутствует ID соревнования.'); return; }
             const { data, error } = await supabaseClient.from('competitions').select('*').eq('id', compId);
-            
-            if (error || !data || data.length === 0) {
-                showError('Соревнование не найдено. Проверьте ссылку.');
-                return;
-            }
-            
+            if (error || !data || data.length === 0) { showError('Соревнование не найдено. Проверьте ссылку.'); return; }
             currentCompetition = data[0];
             document.getElementById('compNameDisplay').innerHTML = `🏆 ${currentCompetition.name}`;
             document.getElementById('formBlock').style.display = 'block';
@@ -87,93 +75,4 @@
         function showError(msg) {
             document.getElementById('formBlock').style.display = 'none';
             document.getElementById('errorMessage').textContent = msg;
-            document.getElementById('errorBlock').style.display = 'block';
-        }
-        
-        async function findParticipant() {
-            const email = document.getElementById('emailInput').value.trim();
-            if (!email) { alert('Введите email'); return; }
-            
-            document.getElementById('loading').style.display = 'block';
-            document.getElementById('result').style.display = 'none';
-            
-            const { data } = await supabaseClient.from('participants').select('*').eq('competition_id', currentCompetition.id).eq('email', email);
-            
-            document.getElementById('loading').style.display = 'none';
-            
-            if (!data || data.length === 0) {
-                showMessage('Участник с таким email не найден в этом соревновании', 'error');
-                return;
-            }
-            
-            const p = data[0];
-            if (p.place === 'Не определено') {
-                showMessage('Результаты ещё не опубликованы. Зайдите позже.', 'info');
-                return;
-            }
-            
-            currentParticipant = p;
-            await generateAndDownloadPDF();
-        }
-        
-        async function generateAndDownloadPDF() {
-            const dateStr = currentCompetition.date;
-            
-            const certificateHTML = `
-                <div style="width: 800px; height: 566px; background: #fffef7; position: relative; padding: 30px; box-sizing: border-box;">
-                    <div style="border: 8px solid #ffd700; height: 100%; box-sizing: border-box; position: relative;">
-                        <div style="border: 2px solid #ffd700; margin: 10px; height: calc(100% - 20px); position: relative;">
-                            <div style="text-align: center; padding: 30px 20px;">
-                                <div style="font-size: 14px; color: #b8860b; letter-spacing: 2px;">РОССИЙСКАЯ ФЕДЕРАЦИЯ</div>
-                                <div style="font-size: 42px; font-weight: bold; color: #b8860b; margin: 20px 0 10px;">ГРАМОТА</div>
-                                <div style="width: 150px; height: 2px; background: #ffd700; margin: 0 auto 20px;"></div>
-                                <div style="font-size: 22px; margin: 30px 0 20px;">НАГРАЖДАЕТСЯ</div>
-                                <div style="font-size: 32px; font-weight: bold; margin: 20px 0; border-bottom: 2px solid #ffd700; display: inline-block; padding: 0 30px 10px;">${currentParticipant.name}</div>
-                                <div style="font-size: 24px; margin: 30px 0 20px; color: #b8860b;">занявший(ая) ${currentParticipant.place} место</div>
-                                <div style="font-size: 18px; margin: 20px 0;">в соревнованиях «${currentCompetition.name}»</div>
-                                <div style="font-size: 16px; margin: 40px 0 20px;">${dateStr}</div>
-                            </div>
-                            <div style="position: absolute; bottom: 20px; left: 30px; font-size: 12px;">
-                                Председатель оргкомитета<br>
-                                __________________<br>
-                                И.О. Фамилия
-                            </div>
-                            <div style="position: absolute; bottom: 20px; right: 50px; font-size: 12px; text-align: right;">
-                                М.П.
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-            
-            const templateDiv = document.getElementById('certificateTemplate');
-            templateDiv.innerHTML = certificateHTML;
-            showMessage('⏳ Создание грамоты...', 'info');
-            await new Promise(resolve => setTimeout(resolve, 100));
-            
-            const element = templateDiv.firstElementChild;
-            const canvas = await html2canvas(element, { scale: 3, backgroundColor: '#ffffff', logging: false });
-            const { jsPDF } = window.jspdf;
-            const imgData = canvas.toDataURL('image/png');
-            const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-            const imgWidth = 297;
-            const imgHeight = (canvas.height * imgWidth) / canvas.width;
-            doc.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
-            doc.save(`Грамота_${currentParticipant.name}.pdf`);
-            
-            templateDiv.innerHTML = '';
-            showMessage('✅ Грамота скачана!', 'success');
-        }
-        
-        function showMessage(msg, type) {
-            const div = document.getElementById('result');
-            div.className = `message ${type}`;
-            div.textContent = msg;
-            div.style.display = 'block';
-        }
-        
-        document.getElementById('formBlock').style.display = 'none';
-        init();
-    </script>
-</body>
-</html>
+            document.getElementById('errorBlock').style.display = 'block
