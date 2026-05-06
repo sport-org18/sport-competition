@@ -8,12 +8,14 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
-        /* Стили для страницы поиска */
+        /* Скрытый шаблон */
+        .certificate-template { position: absolute; left: -9999px; top: -9999px; width: 800px; background: #f5efe7; font-family: 'Times New Roman', 'Georgia', 'Palatino', serif; }
+        /* Дизайн страницы поиска */
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; }
         body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
-        .container { background: white; border-radius: 20px; width: 100%; max-width: 500px; padding: 40px; }
+        .container { background: white; border-radius: 20px; max-width: 500px; width: 100%; padding: 40px; }
         h1 { text-align: center; margin-bottom: 10px; }
-        .comp-name { text-align: center; color: #667eea; margin-bottom: 30px; font-weight: bold; font-size: 18px; }
+        .comp-name { text-align: center; color: #667eea; margin-bottom: 30px; font-weight: bold; }
         .form-group { margin-bottom: 20px; }
         label { display: block; margin-bottom: 8px; font-weight: 500; }
         input { width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 16px; }
@@ -23,19 +25,11 @@
         .error { background: #f8d7da; color: #721c24; }
         .info { background: #d1ecf1; color: #0c5460; }
         .loading { text-align: center; margin: 20px 0; }
-        .error-page { text-align: center; padding: 20px; }
-        .error-page h2 { color: #e74c3c; margin-bottom: 15px; }
-        /* Стили для скрытого шаблона грамоты */
-        .certificate-template { position: absolute; left: -9999px; top: -9999px; width: 800px; background: white; font-family: 'Times New Roman', 'Georgia', serif; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div id="errorBlock" style="display: none;" class="error-page">
-            <h2>❌ Ошибка</h2>
-            <p id="errorMessage"></p>
-            <p>Пожалуйста, обратитесь к организатору.</p>
-        </div>
+    <div class="container" id="mainContainer">
+        <div id="errorBlock" style="display: none; text-align: center; color: #e74c3c;"><h2>❌ Ошибка</h2><p id="errorMessage"></p></div>
         <div id="formBlock">
             <h1>📄 Получить грамоту</h1>
             <div id="compNameDisplay" class="comp-name"></div>
@@ -48,14 +42,12 @@
     <div id="certificateTemplate" class="certificate-template"></div>
 
     <script>
-        // ========== НАСТРОЙКИ ==========
+        // ========== ВАШИ КЛЮЧИ ==========
         const SUPABASE_URL = "https://kcpyfbdslhisfqqobvje.supabase.co";
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjcHlmYmRzbGhpc2ZxcW9idmplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1Mjg1OTAsImV4cCI6MjA5MzEwNDU5MH0.Y4861DLKZ0FG3_rkosf_qH0w5P2F_hdheIBOfTTSmsI";
-        // ПРЯМЫЕ ССЫЛКИ НА ВАШИ ИЗОБРАЖЕНИЯ (ПОДПИСЬ И ПЕЧАТЬ)
-        const SIGNATURE_IMG_URL = "https://i.ibb.co/7Sg6S7N/image.png"; // Прямая ссылка на подпись
-        const STAMP_IMG_URL = "https://i.ibb.co/fYtJD1Ls/????????"; // Ссылка на печать (нужно заменить, если вы загружали печать отдельно)
-        // ПРИМЕЧАНИЕ: Для печати нужна прямая ссылка. Если вы её загружали, замените текст "https://i.ibb.co/fYtJD1Ls/???????" на реальную.
-        // Если нет, пока будет просто текст "М.П."
+        // ========== ИЗОБРАЖЕНИЯ ==========
+        // ПРЯМАЯ ССЫЛКА НА ПЕЧАТЬ (замените!)
+        const STAMP_URL = "https://ibb.co/n8Mtf0Y9/image.png"; // ЗАМЕНИТЕ на прямую ссылку вашей печати 
         // =================================
         
         let supabaseClient = null;
@@ -88,81 +80,76 @@
             const p = data[0];
             if (p.place === 'Не определено') { showMessage('Результаты ещё не опубликованы', 'info'); return; }
             currentParticipant = p;
-            await generateAndDownloadPDF();
+            await generateCertificatePDF();
         }
         
-        async function generateAndDownloadPDF() {
+        async function generateCertificatePDF() {
             const comp = currentCompetition;
             const p = currentParticipant;
-            
             let placeText = p.place;
             if (p.place === '1') placeText = 'I';
             else if (p.place === '2') placeText = 'II';
             else if (p.place === '3') placeText = 'III';
+            const resultHtml = p.result && p.result.trim() !== '' ? `<div style="margin-top: 8px; font-size: 14px;">результат: ${p.result}</div>` : '';
             
-            const resultHtml = p.result && p.result.trim() !== '' ? `<div style="font-size: 14px; margin-top: 10px;">результат: ${p.result}</div>` : '';
-            
-            // Готовим HTML-шаблон с золотой рамкой и изображениями подписи и печати
-            const certificateHTML = `
-                <div style="width: 800px; min-height: 566px; background: #fdfaf6; position: relative; padding: 35px; box-sizing: border-box; font-family: 'Times New Roman', Georgia, serif;">
-                    <!-- 1. Внешняя золотая рамка -->
-                    <div style="border: 12px solid #d4af37; height: 100%; box-sizing: border-box; position: relative; background: white; box-shadow: 0 10px 20px rgba(0,0,0,0.1);">
-                        <!-- 2. Внутренняя декоративная рамка -->
-                        <div style="border: 2px solid #d4af37; margin: 15px; height: calc(100% - 30px); position: relative;">
+            // КРАСИВЫЙ ДИЗАЙН С ЛЫЖНИКОМ И ЁЛКАМИ (в стиле вашего примера)
+            const templateHtml = `
+                <div style="width: 800px; min-height: 566px; background: linear-gradient(145deg, #faf6ed 0%, #f2ebdb 100%); font-family: 'Times New Roman', Georgia, serif; position: relative; overflow: hidden;">
+                    <!-- Фоновые декорации -->
+                    <div style="position: absolute; bottom: 20px; left: 20px; font-size: 80px; opacity: 0.1;">⛷️</div>
+                    <div style="position: absolute; bottom: 40px; right: 40px; font-size: 60px; opacity: 0.1;">🎿</div>
+                    <div style="position: absolute; top: 20px; left: 30px; width: 80px; height: 100px; background: url('data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"%23d4af37\" opacity=\"0.15\"><path d=\"M12 2L15 8.5L22 9.5L17 14L18.5 21L12 17.5L5.5 21L7 14L2 9.5L9 8.5L12 2Z\"/></svg>') no-repeat; background-size: contain;"></div>
+                    <div style="position: absolute; top: 20px; right: 30px; width: 80px; height: 100px; background: url('data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"%23d4af37\" opacity=\"0.15\"><path d=\"M12 2L15 8.5L22 9.5L17 14L18.5 21L12 17.5L5.5 21L7 14L2 9.5L9 8.5L12 2Z\"/></svg>') no-repeat; background-size: contain;"></div>
+                    
+                    <!-- Основная золотая рамка -->
+                    <div style="border: 12px solid #d4af37; margin: 20px; background: white; position: relative; z-index: 2; box-shadow: 0 15px 30px rgba(0,0,0,0.2);">
+                        <!-- Внутренняя рамка с узором -->
+                        <div style="border: 2px solid #d4af37; margin: 15px; padding: 20px; text-align: center; position: relative;">
                             
                             <!-- Шапка -->
-                            <div style="text-align: center; margin-top: 15px; margin-bottom: 15px; padding: 0 15px;">
-                                <div style="font-size: 12px; line-height: 1.4; font-weight: 500;">${(comp.org_header || '').replace(/\n/g, '<br>')}</div>
-                            </div>
+                            <div style="font-size: 11px; line-height: 1.4; margin-bottom: 15px; font-weight: 500;">${(comp.org_header || '').replace(/\n/g, '<br>')}</div>
                             
-                            <!-- Заголовок -->
-                            <div style="text-align: center; margin: 5px 0;">
-                                <div style="font-size: 42px; font-weight: bold; letter-spacing: 6px; color: #2c3e50;">ГРАМОТА</div>
-                            </div>
+                            <!-- Заголовок ГРАМОТА -->
+                            <div style="font-size: 48px; font-weight: bold; letter-spacing: 8px; color: #b8860b; text-shadow: 2px 2px 3px rgba(0,0,0,0.1); margin: 10px 0;">ГРАМОТА</div>
                             
                             <!-- Текст награждения -->
-                            <div style="text-align: center;">
-                                <div style="font-size: 22px; margin: 15px 0 5px 0;">награждается</div>
-                                <div style="font-size: 32px; font-weight: bold; margin: 10px 0; color: #1a1a1a;">${p.member1_name || ''}</div>
-                                <div style="font-size: 20px; margin: 15px 0 5px 0;">команда, занявшая</div>
-                                <div style="font-size: 52px; font-weight: bold; color: #b8860b; margin: 10px 0; text-shadow: 2px 2px 4px rgba(0,0,0,0.1);">${placeText} место</div>
-                                <div style="font-size: 18px; margin: 15px 0;">в ${comp.name}</div>
-                                ${resultHtml}
+                            <div style="font-size: 20px; margin: 15px 0 5px;">награждается</div>
+                            <div style="font-size: 32px; font-weight: bold; margin: 10px 0; color: #2c3e50;">${p.member1_name || ''}</div>
+                            <div style="font-size: 20px; margin: 15px 0 5px;">команда, занявшая</div>
+                            <div style="font-size: 52px; font-weight: bold; color: #b8860b; margin: 10px 0; text-shadow: 2px 2px 4px rgba(0,0,0,0.1);">${placeText} место</div>
+                            <div style="font-size: 18px; margin: 15px 0;">в ${comp.name}</div>
+                            ${resultHtml}
+                            
+                            <!-- Подпись и печать -->
+                            <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 40px;">
+                                <div style="text-align: left; border-top: 1px solid #d4af37; padding-top: 10px; width: 200px;">
+                                    <div style="font-size: 12px;">${comp.sign_position || ''}</div>
+                                    <div style="font-size: 14px; font-weight: bold; margin-top: 5px;">${comp.sign_name || ''}</div>
+                                </div>
+                                <div style="text-align: right;">
+                                    <img src="${STAMP_URL}" style="height: 50px; width: auto; opacity: 0.8;">
+                                </div>
                             </div>
                             
-                            <!-- Блок подписи, печати и даты -->
-                            <div style="position: absolute; bottom: 25px; left: 25px; right: 25px;">
-                                <div style="display: flex; justify-content: space-between; align-items: flex-end;">
-                                    <!-- Подпись (изображение) -->
-                                    <div style="text-align: left;">
-                                        <div style="font-size: 12px; margin-bottom: 5px;">${comp.sign_position || ''}</div>
-                                        <img src="${SIGNATURE_IMG_URL}" style="height: 40px; width: auto; object-fit: contain;">
-                                        <div style="font-size: 12px; margin-top: 5px;">${comp.sign_name || ''}</div>
-                                    </div>
-                                    <!-- Печать (изображение или текст, если ссылки нет) -->
-                                    <div style="text-align: right;">
-                                        <div style="font-size: 12px;">М.П.</div>
-                                        <!-- Если есть ссылка на печать, раскомментируйте строку ниже и закомментируйте "М.П." -->
-                                        <!-- <img src="${STAMP_IMG_URL}" style="height: 60px; width: auto; object-fit: contain;"> -->
-                                    </div>
-                                </div>
-                                <!-- Дата и место -->
-                                <div style="text-align: right; font-size: 13px; margin-top: 25px; border-top: 1px dashed #ccc; padding-top: 10px;">
-                                    ${comp.event_place ? comp.event_place + ', ' : ''}${comp.date}
-                                </div>
+                            <!-- Дата и место -->
+                            <div style="text-align: right; font-size: 13px; margin-top: 35px; border-top: 1px solid #d4af37; padding-top: 12px;">
+                                ${comp.event_place ? comp.event_place + ', ' : ''}${comp.date}
                             </div>
                         </div>
                     </div>
+                    
+                    <!-- Нижние декорации (лыжи) -->
+                    <div style="position: absolute; bottom: 15px; left: 30px; width: 120px; height: 20px; background: linear-gradient(90deg, #8B4513, #D2B48C); border-radius: 10px; transform: rotate(-5deg); opacity: 0.3;"></div>
+                    <div style="position: absolute; bottom: 10px; right: 40px; width: 120px; height: 20px; background: linear-gradient(90deg, #8B4513, #D2B48C); border-radius: 10px; transform: rotate(5deg); opacity: 0.3;"></div>
                 </div>
             `;
             
-            const templateDiv = document.getElementById('certificateTemplate');
-            templateDiv.innerHTML = certificateHTML;
+            const container = document.getElementById('certificateTemplate');
+            container.innerHTML = templateHtml;
             showMessage('⏳ Создание грамоты...', 'info');
-            await new Promise(resolve => setTimeout(resolve, 200));
-            
-            const element = templateDiv.firstElementChild;
-            const canvas = await html2canvas(element, { scale: 3, backgroundColor: '#ffffff', logging: false, useCORS: true });
+            await new Promise(r => setTimeout(r, 200));
+            const element = container.firstElementChild;
+            const canvas = await html2canvas(element, { scale: 3, backgroundColor: '#f5efe7', logging: false, useCORS: true });
             const imgData = canvas.toDataURL('image/png');
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
@@ -170,9 +157,8 @@
             const imgHeight = (canvas.height * imgWidth) / canvas.width;
             doc.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
             doc.save(`Грамота_${p.member1_name}.pdf`);
-            
-            templateDiv.innerHTML = '';
-            showMessage('✅ Грамота скачана!', 'success');
+            container.innerHTML = '';
+            showMessage('✅ Грамота готова!', 'success');
         }
         
         function showMessage(msg, type) { const div = document.getElementById('result'); div.className = `message ${type}`; div.textContent = msg; div.style.display = 'block'; }
