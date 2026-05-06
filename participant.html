@@ -5,12 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Получить грамоту</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
-        /* Скрытый шаблон */
-        .certificate-template { position: absolute; left: -9999px; top: -9999px; width: 800px; background: #f5efe7; font-family: 'Times New Roman', 'Georgia', 'Palatino', serif; }
-        /* Дизайн страницы поиска */
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; }
         body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
         .container { background: white; border-radius: 20px; max-width: 500px; width: 100%; padding: 40px; }
@@ -25,30 +21,30 @@
         .error { background: #f8d7da; color: #721c24; }
         .info { background: #d1ecf1; color: #0c5460; }
         .loading { text-align: center; margin: 20px 0; }
+        .error-page { text-align: center; padding: 20px; }
+        .error-page h2 { color: #e74c3c; margin-bottom: 15px; }
+        /* Стили для генерации PDF */
+        .pdf-source { position: absolute; left: -9999px; top: -9999px; width: 800px; background: white; font-family: 'Times New Roman', Georgia, serif; }
     </style>
 </head>
 <body>
-    <div class="container" id="mainContainer">
-        <div id="errorBlock" style="display: none; text-align: center; color: #e74c3c;"><h2>❌ Ошибка</h2><p id="errorMessage"></p></div>
+    <div class="container">
+        <div id="errorBlock" style="display: none;" class="error-page"><h2>❌ Ошибка</h2><p id="errorMessage"></p></div>
         <div id="formBlock">
             <h1>📄 Получить грамоту</h1>
             <div id="compNameDisplay" class="comp-name"></div>
             <div class="form-group"><label>Введите ваш email</label><input type="email" id="emailInput" placeholder="email@example.com"></div>
             <button onclick="findParticipant()">Найти грамоту</button>
-            <div id="loading" class="loading" style="display: none;">⏳ Создание...</div>
+            <div id="loading" class="loading" style="display: none;">⏳ Создание грамоты...</div>
             <div id="result" class="message"></div>
         </div>
     </div>
-    <div id="certificateTemplate" class="certificate-template"></div>
+    <div id="pdfSource" class="pdf-source"></div>
 
     <script>
         // ========== ВАШИ КЛЮЧИ ==========
         const SUPABASE_URL = "https://kcpyfbdslhisfqqobvje.supabase.co";
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjcHlmYmRzbGhpc2ZxcW9idmplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1Mjg1OTAsImV4cCI6MjA5MzEwNDU5MH0.Y4861DLKZ0FG3_rkosf_qH0w5P2F_hdheIBOfTTSmsI";
-        // ========== ИЗОБРАЖЕНИЯ ==========
-        // ПРЯМАЯ ССЫЛКА НА ПЕЧАТЬ (замените!)
-        const STAMP_URL = "https://ibb.co/n8Mtf0Y9/image.png"; // ЗАМЕНИТЕ на прямую ссылку вашей печати 
-        // =================================
         
         let supabaseClient = null;
         let currentCompetition = null;
@@ -67,7 +63,11 @@
             document.getElementById('formBlock').style.display = 'block';
         }
         
-        function showError(msg) { document.getElementById('formBlock').style.display = 'none'; document.getElementById('errorMessage').textContent = msg; document.getElementById('errorBlock').style.display = 'block'; }
+        function showError(msg) { 
+            document.getElementById('formBlock').style.display = 'none'; 
+            document.getElementById('errorMessage').textContent = msg; 
+            document.getElementById('errorBlock').style.display = 'block'; 
+        }
         
         async function findParticipant() {
             const email = document.getElementById('emailInput').value.trim();
@@ -86,82 +86,84 @@
         async function generateCertificatePDF() {
             const comp = currentCompetition;
             const p = currentParticipant;
+            
+            // Форматируем место
             let placeText = p.place;
             if (p.place === '1') placeText = 'I';
             else if (p.place === '2') placeText = 'II';
             else if (p.place === '3') placeText = 'III';
-            const resultHtml = p.result && p.result.trim() !== '' ? `<div style="margin-top: 8px; font-size: 14px;">результат: ${p.result}</div>` : '';
             
-            // КРАСИВЫЙ ДИЗАЙН С ЛЫЖНИКОМ И ЁЛКАМИ (в стиле вашего примера)
+            // HTML-шаблон грамоты (восстановлен из вашего DOCX)
             const templateHtml = `
-                <div style="width: 800px; min-height: 566px; background: linear-gradient(145deg, #faf6ed 0%, #f2ebdb 100%); font-family: 'Times New Roman', Georgia, serif; position: relative; overflow: hidden;">
-                    <!-- Фоновые декорации -->
-                    <div style="position: absolute; bottom: 20px; left: 20px; font-size: 80px; opacity: 0.1;">⛷️</div>
-                    <div style="position: absolute; bottom: 40px; right: 40px; font-size: 60px; opacity: 0.1;">🎿</div>
-                    <div style="position: absolute; top: 20px; left: 30px; width: 80px; height: 100px; background: url('data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"%23d4af37\" opacity=\"0.15\"><path d=\"M12 2L15 8.5L22 9.5L17 14L18.5 21L12 17.5L5.5 21L7 14L2 9.5L9 8.5L12 2Z\"/></svg>') no-repeat; background-size: contain;"></div>
-                    <div style="position: absolute; top: 20px; right: 30px; width: 80px; height: 100px; background: url('data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"%23d4af37\" opacity=\"0.15\"><path d=\"M12 2L15 8.5L22 9.5L17 14L18.5 21L12 17.5L5.5 21L7 14L2 9.5L9 8.5L12 2Z\"/></svg>') no-repeat; background-size: contain;"></div>
-                    
-                    <!-- Основная золотая рамка -->
-                    <div style="border: 12px solid #d4af37; margin: 20px; background: white; position: relative; z-index: 2; box-shadow: 0 15px 30px rgba(0,0,0,0.2);">
-                        <!-- Внутренняя рамка с узором -->
-                        <div style="border: 2px solid #d4af37; margin: 15px; padding: 20px; text-align: center; position: relative;">
+                <div style="width: 800px; background: white; padding: 40px; text-align: center; font-family: 'Times New Roman', Georgia, serif;">
+                    <!-- Золотая рамка -->
+                    <div style="border: 12px solid #d4af37; background: white; padding: 20px;">
+                        <div style="border: 2px solid #d4af37; padding: 25px;">
                             
                             <!-- Шапка -->
-                            <div style="font-size: 11px; line-height: 1.4; margin-bottom: 15px; font-weight: 500;">${(comp.org_header || '').replace(/\n/g, '<br>')}</div>
+                            <div style="font-size: 13px; line-height: 1.4; margin-bottom: 30px;">
+                                Управление культуры, молодёжи и спорта<br>
+                                муниципального образования «Муниципальный округ Дебёсский район Удмуртской Республики»
+                            </div>
                             
-                            <!-- Заголовок ГРАМОТА -->
-                            <div style="font-size: 48px; font-weight: bold; letter-spacing: 8px; color: #b8860b; text-shadow: 2px 2px 3px rgba(0,0,0,0.1); margin: 10px 0;">ГРАМОТА</div>
+                            <!-- Заголовок -->
+                            <div style="font-size: 42px; font-weight: bold; letter-spacing: 6px; margin: 20px 0;">ГРАМОТА</div>
                             
                             <!-- Текст награждения -->
-                            <div style="font-size: 20px; margin: 15px 0 5px;">награждается</div>
-                            <div style="font-size: 32px; font-weight: bold; margin: 10px 0; color: #2c3e50;">${p.member1_name || ''}</div>
-                            <div style="font-size: 20px; margin: 15px 0 5px;">команда, занявшая</div>
-                            <div style="font-size: 52px; font-weight: bold; color: #b8860b; margin: 10px 0; text-shadow: 2px 2px 4px rgba(0,0,0,0.1);">${placeText} место</div>
-                            <div style="font-size: 18px; margin: 15px 0;">в ${comp.name}</div>
-                            ${resultHtml}
+                            <div style="font-size: 18px; margin: 15px 0;">НАГРАЖДАЕТ</div>
+                            <div style="font-size: 24px; font-weight: bold; margin: 15px 0;">${p.member1_name || ''}</div>
+                            <div style="font-size: 18px; margin: 15px 0;">за <span style="font-size: 28px; font-weight: bold;">${placeText}</span> место</div>
+                            <div style="font-size: 16px; margin: 20px 0;">в районных соревнованиях</div>
+                            <div style="font-size: 18px; font-weight: bold; margin: 10px 0;">«Универсальный спортсмен»,</div>
+                            <div style="font-size: 16px; margin: 10px 0;">посвященных Дню физкультурника.</div>
+                            
+                            <!-- Результат если есть -->
+                            ${p.result ? `<div style="font-size: 14px; margin: 15px 0;">результат: ${p.result}</div>` : ''}
                             
                             <!-- Подпись и печать -->
-                            <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 40px;">
-                                <div style="text-align: left; border-top: 1px solid #d4af37; padding-top: 10px; width: 200px;">
-                                    <div style="font-size: 12px;">${comp.sign_position || ''}</div>
-                                    <div style="font-size: 14px; font-weight: bold; margin-top: 5px;">${comp.sign_name || ''}</div>
+                            <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 50px;">
+                                <div style="text-align: left;">
+                                    <div style="font-size: 14px;">Начальник</div>
+                                    <div style="font-family: 'Brush Script MT', cursive; font-size: 24px; margin-top: 5px;">А.С. Дурновцев</div>
                                 </div>
                                 <div style="text-align: right;">
-                                    <img src="${STAMP_URL}" style="height: 50px; width: auto; opacity: 0.8;">
+                                    <div style="font-size: 14px;">М.П.</div>
                                 </div>
                             </div>
                             
                             <!-- Дата и место -->
-                            <div style="text-align: right; font-size: 13px; margin-top: 35px; border-top: 1px solid #d4af37; padding-top: 12px;">
-                                ${comp.event_place ? comp.event_place + ', ' : ''}${comp.date}
+                            <div style="text-align: right; font-size: 13px; margin-top: 40px;">
+                                с. Дебёсы, ${comp.date || '________'}
                             </div>
                         </div>
                     </div>
-                    
-                    <!-- Нижние декорации (лыжи) -->
-                    <div style="position: absolute; bottom: 15px; left: 30px; width: 120px; height: 20px; background: linear-gradient(90deg, #8B4513, #D2B48C); border-radius: 10px; transform: rotate(-5deg); opacity: 0.3;"></div>
-                    <div style="position: absolute; bottom: 10px; right: 40px; width: 120px; height: 20px; background: linear-gradient(90deg, #8B4513, #D2B48C); border-radius: 10px; transform: rotate(5deg); opacity: 0.3;"></div>
                 </div>
             `;
             
-            const container = document.getElementById('certificateTemplate');
+            const container = document.getElementById('pdfSource');
             container.innerHTML = templateHtml;
             showMessage('⏳ Создание грамоты...', 'info');
             await new Promise(r => setTimeout(r, 200));
-            const element = container.firstElementChild;
-            const canvas = await html2canvas(element, { scale: 3, backgroundColor: '#f5efe7', logging: false, useCORS: true });
-            const imgData = canvas.toDataURL('image/png');
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-            const imgWidth = 210;
-            const imgHeight = (canvas.height * imgWidth) / canvas.width;
-            doc.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
-            doc.save(`Грамота_${p.member1_name}.pdf`);
+            
+            const opt = {
+                margin: [0, 0, 0, 0],
+                filename: `Грамота_${p.member1_name}.pdf`,
+                image: { type: 'jpeg', quality: 1.0 },
+                html2canvas: { scale: 2, letterRendering: true },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+            
+            await html2pdf().set(opt).from(container).save();
             container.innerHTML = '';
             showMessage('✅ Грамота готова!', 'success');
         }
         
-        function showMessage(msg, type) { const div = document.getElementById('result'); div.className = `message ${type}`; div.textContent = msg; div.style.display = 'block'; }
+        function showMessage(msg, type) { 
+            const div = document.getElementById('result'); 
+            div.className = `message ${type}`; 
+            div.textContent = msg; 
+            div.style.display = 'block'; 
+        }
         
         document.getElementById('formBlock').style.display = 'none';
         init();
