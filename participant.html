@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Получить грамоту</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; }
         body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
@@ -23,8 +24,6 @@
         .loading { text-align: center; margin: 20px 0; }
         .error-page { text-align: center; padding: 20px; }
         .error-page h2 { color: #e74c3c; margin-bottom: 15px; }
-        /* Стили для генерации PDF */
-        .pdf-source { position: absolute; left: -9999px; top: -9999px; width: 800px; background: white; font-family: 'Times New Roman', Georgia, serif; }
     </style>
 </head>
 <body>
@@ -39,18 +38,21 @@
             <div id="result" class="message"></div>
         </div>
     </div>
-    <div id="pdfSource" class="pdf-source"></div>
 
     <script>
-        // ========== ВАШИ КЛЮЧИ ==========
+        // ========== НАСТРОЙКИ ==========
         const SUPABASE_URL = "https://kcpyfbdslhisfqqobvje.supabase.co";
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjcHlmYmRzbGhpc2ZxcW9idmplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1Mjg1OTAsImV4cCI6MjA5MzEwNDU5MH0.Y4861DLKZ0FG3_rkosf_qH0w5P2F_hdheIBOfTTSmsI";
+        
+        // ПРЯМАЯ ССЫЛКА НА КАРТИНКУ С ЯНДЕКС ДИСКА (ваш дизайн грамоты)
+        const BACKGROUND_IMG_URL = "https://disk.yandex.ru/i/QmrW6XRNS6BhKQ";
+        // ====================================
         
         let supabaseClient = null;
         let currentCompetition = null;
         let currentParticipant = null;
         
-        function getCompId() { const urlParams = new URLSearchParams(window.location.search); return parseInt(urlParams.get('comp')); }
+        function getCompId() { return parseInt(new URLSearchParams(window.location.search).get('comp')); }
         
         async function init() {
             supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -63,106 +65,98 @@
             document.getElementById('formBlock').style.display = 'block';
         }
         
-        function showError(msg) { 
-            document.getElementById('formBlock').style.display = 'none'; 
-            document.getElementById('errorMessage').textContent = msg; 
-            document.getElementById('errorBlock').style.display = 'block'; 
+        function showError(msg) {
+            document.getElementById('formBlock').style.display = 'none';
+            document.getElementById('errorMessage').textContent = msg;
+            document.getElementById('errorBlock').style.display = 'block';
         }
         
         async function findParticipant() {
             const email = document.getElementById('emailInput').value.trim();
             if (!email) { alert('Введите email'); return; }
             document.getElementById('loading').style.display = 'block';
-            document.getElementById('result').style.display = 'none';
             const { data } = await supabaseClient.from('participants').select('*').eq('competition_id', currentCompetition.id).eq('email', email);
             document.getElementById('loading').style.display = 'none';
             if (!data || data.length === 0) { showMessage('Участник не найден', 'error'); return; }
             const p = data[0];
             if (p.place === 'Не определено') { showMessage('Результаты ещё не опубликованы', 'info'); return; }
             currentParticipant = p;
-            await generateCertificatePDF();
+            await generateAndDownloadPDF();
         }
         
-        async function generateCertificatePDF() {
-            const comp = currentCompetition;
+        async function generateAndDownloadPDF() {
             const p = currentParticipant;
+            const comp = currentCompetition;
             
-            // Форматируем место
             let placeText = p.place;
             if (p.place === '1') placeText = 'I';
             else if (p.place === '2') placeText = 'II';
             else if (p.place === '3') placeText = 'III';
             
-            // HTML-шаблон грамоты (восстановлен из вашего DOCX)
-            const templateHtml = `
-                <div style="width: 800px; background: white; padding: 40px; text-align: center; font-family: 'Times New Roman', Georgia, serif;">
-                    <!-- Золотая рамка -->
-                    <div style="border: 12px solid #d4af37; background: white; padding: 20px;">
-                        <div style="border: 2px solid #d4af37; padding: 25px;">
-                            
-                            <!-- Шапка -->
-                            <div style="font-size: 13px; line-height: 1.4; margin-bottom: 30px;">
-                                Управление культуры, молодёжи и спорта<br>
-                                муниципального образования «Муниципальный округ Дебёсский район Удмуртской Республики»
-                            </div>
-                            
-                            <!-- Заголовок -->
-                            <div style="font-size: 42px; font-weight: bold; letter-spacing: 6px; margin: 20px 0;">ГРАМОТА</div>
-                            
-                            <!-- Текст награждения -->
-                            <div style="font-size: 18px; margin: 15px 0;">НАГРАЖДАЕТ</div>
-                            <div style="font-size: 24px; font-weight: bold; margin: 15px 0;">${p.member1_name || ''}</div>
-                            <div style="font-size: 18px; margin: 15px 0;">за <span style="font-size: 28px; font-weight: bold;">${placeText}</span> место</div>
-                            <div style="font-size: 16px; margin: 20px 0;">в районных соревнованиях</div>
-                            <div style="font-size: 18px; font-weight: bold; margin: 10px 0;">«Универсальный спортсмен»,</div>
-                            <div style="font-size: 16px; margin: 10px 0;">посвященных Дню физкультурника.</div>
-                            
-                            <!-- Результат если есть -->
-                            ${p.result ? `<div style="font-size: 14px; margin: 15px 0;">результат: ${p.result}</div>` : ''}
-                            
-                            <!-- Подпись и печать -->
-                            <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 50px;">
-                                <div style="text-align: left;">
-                                    <div style="font-size: 14px;">Начальник</div>
-                                    <div style="font-family: 'Brush Script MT', cursive; font-size: 24px; margin-top: 5px;">А.С. Дурновцев</div>
-                                </div>
-                                <div style="text-align: right;">
-                                    <div style="font-size: 14px;">М.П.</div>
-                                </div>
-                            </div>
-                            
-                            <!-- Дата и место -->
-                            <div style="text-align: right; font-size: 13px; margin-top: 40px;">
-                                с. Дебёсы, ${comp.date || '________'}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
+            // 1. Загружаем картинку-фон
+            const img = new Image();
+            img.crossOrigin = "Anonymous";
+            img.src = BACKGROUND_IMG_URL;
             
-            const container = document.getElementById('pdfSource');
-            container.innerHTML = templateHtml;
-            showMessage('⏳ Создание грамоты...', 'info');
-            await new Promise(r => setTimeout(r, 200));
+            await new Promise((resolve, reject) => {
+                img.onload = resolve;
+                img.onerror = reject;
+            });
             
-            const opt = {
-                margin: [0, 0, 0, 0],
-                filename: `Грамота_${p.member1_name}.pdf`,
-                image: { type: 'jpeg', quality: 1.0 },
-                html2canvas: { scale: 2, letterRendering: true },
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-            };
+            // 2. Создаём canvas и рисуем фон
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
             
-            await html2pdf().set(opt).from(container).save();
-            container.innerHTML = '';
+            // 3. Рисуем текст поверх картинки (настройте координаты и шрифты)
+            ctx.font = 'bold 32px "Times New Roman", Georgia, serif';
+            ctx.fillStyle = '#000000';
+            ctx.textAlign = 'center';
+            
+            // Имя участника (примерные координаты — отрегулируйте)
+            ctx.fillText(p.member1_name || '', canvas.width/2, canvas.height/2 - 50);
+            
+            // Место (римскими цифрами)
+            ctx.font = 'bold 48px "Times New Roman", Georgia, serif';
+            ctx.fillStyle = '#b8860b';
+            ctx.fillText(placeText, canvas.width/2, canvas.height/2 + 20);
+            
+            // Название соревнования
+            ctx.font = '20px "Times New Roman", Georgia, serif';
+            ctx.fillStyle = '#000000';
+            ctx.fillText(comp.name, canvas.width/2, canvas.height/2 + 100);
+            
+            // Результат (если есть)
+            if (p.result) {
+                ctx.font = '16px "Times New Roman", Georgia, serif';
+                ctx.fillText(`результат: ${p.result}`, canvas.width/2, canvas.height/2 + 140);
+            }
+            
+            // Дата и место проведения (внизу справа)
+            ctx.font = '14px "Times New Roman", Georgia, serif';
+            ctx.textAlign = 'right';
+            ctx.fillText(`${comp.event_place || ''} ${comp.date || ''}`, canvas.width - 50, canvas.height - 50);
+            
+            // 4. Преобразуем canvas в PDF
+            const imgData = canvas.toDataURL('image/png');
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+            const imgWidth = 210;
+            const imgHeight = (canvas.height * imgWidth) / canvas.width;
+            doc.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+            doc.save(`Грамота_${p.member1_name}.pdf`);
+            
             showMessage('✅ Грамота готова!', 'success');
         }
         
-        function showMessage(msg, type) { 
-            const div = document.getElementById('result'); 
-            div.className = `message ${type}`; 
-            div.textContent = msg; 
-            div.style.display = 'block'; 
+        function showMessage(msg, type) {
+            const div = document.getElementById('result');
+            div.className = `message ${type}`;
+            div.textContent = msg;
+            div.style.display = 'block';
+            document.getElementById('loading').style.display = 'none';
         }
         
         document.getElementById('formBlock').style.display = 'none';
