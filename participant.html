@@ -43,9 +43,22 @@
         // ========== НАСТРОЙКИ ==========
         const SUPABASE_URL = "https://kcpyfbdslhisfqqobvje.supabase.co";
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjcHlmYmRzbGhpc2ZxcW9idmplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1Mjg1OTAsImV4cCI6MjA5MzEwNDU5MH0.Y4861DLKZ0FG3_rkosf_qH0w5P2F_hdheIBOfTTSmsI";
-        
-        // ПРЯМАЯ ССЫЛКА НА КАРТИНКУ-ФОН
         const BACKGROUND_IMG_URL = "https://i.ibb.co/WNG80MfL/0.png";
+        
+        // ⚠️ ⚠️ ⚠️ КООРДИНАТЫ ДЛЯ НАСТРОЙКИ ⚠️ ⚠️ ⚠️
+        // Меняйте только числа (Y - отступ сверху, X - отступ слева/справа)
+        const POSITIONS = {
+            header: { 100: 60 },              // Шапка
+            awardName: { 100: 190 },          // слово "НАГРАЖДАЕТ"
+            name: { 100: 235 },               // Имя участника
+            place: { 100: 280 },              // "за X место"
+            district: { 100: 320 },           // "в районных соревнованиях"
+            competition: { 100: 365 },        // Название соревнования
+            result: { 100: 405 },             // "результат: ..."
+            signLabel: { x: 135, y: -150 }, // слово "Начальник"
+            signName: { x: 120, y: -135 },  // Фамилия
+            datePlace: { x: -100, y: -155 } // Дата и место проведения
+        };
         // ====================================
         
         let supabaseClient = null;
@@ -54,9 +67,7 @@
         
         function toGenitiveCase(name) {
             if (!name) return '';
-            if (name.endsWith('ий')) return name.slice(0, -2) + 'ия';
             if (name.endsWith('а') || name.endsWith('я')) return name;
-            if (name.endsWith('ь')) return name.slice(0, -1) + 'я';
             return name + 'а';
         }
         
@@ -119,53 +130,49 @@
                 'Управление культуры, молодёжи и спорта',
                 'муниципального образования «Муниципальный округ Дебёсский район Удмуртской Республики»'
             ];
-            let headerY = 50;
+            let headerY = POSITIONS.header.y;
             headerLines.forEach(line => { ctx.fillText(line, centerX, headerY); headerY += 18; });
             
-            // ГРАМОТУ НЕ ПИШЕМ (она уже на фоне)
-            
-            // НАГРАЖДАЕТ — смещаем ниже
+            // НАГРАЖДАЕТ
             ctx.font = 'bold 18px "Times New Roman", Georgia, serif';
-            ctx.fillStyle = '#000000';
-            ctx.fillText('НАГРАЖДАЕТ', centerX, 190);
+            ctx.fillText('НАГРАЖДАЕТ', centerX, POSITIONS.awardName.y);
             
-            // Имя
+            // ИМЯ
             ctx.font = 'bold 24px "Times New Roman", Georgia, serif';
-            ctx.fillText(nameGenitive, centerX, 235);
+            ctx.fillText(nameGenitive, centerX, POSITIONS.name.y);
             
-            // за место — уменьшен интервал
+            // МЕСТО
             ctx.font = 'bold 20px "Times New Roman", Georgia, serif';
-            ctx.fillText(`за ${placeText} место`, centerX, 280);
+            ctx.fillText(`за ${placeText} место`, centerX, POSITIONS.place.y);
             
-            // в районных соревнованиях
+            // В РАЙОННЫХ СОРЕВНОВАНИЯХ
             ctx.font = '18px "Times New Roman", Georgia, serif';
-            ctx.fillText('в районных соревнованиях', centerX, 320);
+            ctx.fillText('в районных соревнованиях', centerX, POSITIONS.district.y);
             
-            // Название соревнования
+            // СОРЕВНОВАНИЕ
             ctx.font = 'bold 20px "Times New Roman", Georgia, serif';
-            ctx.fillText(comp.name, centerX, 365);
+            ctx.fillText(comp.name, centerX, POSITIONS.competition.y);
             
-            // Результат
+            // РЕЗУЛЬТАТ
             if (p.result && p.result.trim() !== '') {
                 ctx.font = '16px "Times New Roman", Georgia, serif';
-                ctx.fillText(`результат: ${p.result}`, centerX, 405);
+                ctx.fillText(`результат: ${p.result}`, centerX, POSITIONS.result.y);
             }
             
-            // Начальник — на 70 выше, вправо
+            // НАЧАЛЬНИК (слева)
             ctx.font = '14px "Times New Roman", Georgia, serif';
             ctx.textAlign = 'left';
-            ctx.fillText('Начальник', 120, canvas.height - 170);
+            ctx.fillText('Начальник', POSITIONS.signLabel.x, canvas.height + POSITIONS.signLabel.y);
             
-            // Подпись начальника
+            // ФАМИЛИЯ
             ctx.font = 'bold 16px "Times New Roman", Georgia, serif';
-            ctx.fillText('А.С. Дурновцев', 120, canvas.height - 145);
+            ctx.fillText('А.С. Дурновцев', POSITIONS.signName.x, canvas.height + POSITIONS.signName.y);
             
-            // Дата и место — на 70 выше, влево
+            // ДАТА И МЕСТО (справа)
             ctx.font = '14px "Times New Roman", Georgia, serif';
             ctx.textAlign = 'right';
-            ctx.fillText(`${comp.event_place || ''} ${comp.date || ''}`, canvas.width - 100, canvas.height - 155);
+            ctx.fillText(`${comp.event_place || ''} ${comp.date || ''}`, canvas.width + POSITIONS.datePlace.x, canvas.height + POSITIONS.datePlace.y);
             
-            // Сохраняем PDF
             const imgData = canvas.toDataURL('image/png');
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
