@@ -44,13 +44,22 @@
         const SUPABASE_URL = "https://kcpyfbdslhisfqqobvje.supabase.co";
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjcHlmYmRzbGhpc2ZxcW9idmplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1Mjg1OTAsImV4cCI6MjA5MzEwNDU5MH0.Y4861DLKZ0FG3_rkosf_qH0w5P2F_hdheIBOfTTSmsI";
         
-        // ПРЯМАЯ ССЫЛКА НА КАРТИНКУ-ФОН (полный дизайн без текста)
+        // ПРЯМАЯ ССЫЛКА НА КАРТИНКУ-ФОН
         const BACKGROUND_IMG_URL = "https://i.ibb.co/WNG80MfL/0.png";
         // ====================================
         
         let supabaseClient = null;
         let currentCompetition = null;
         let currentParticipant = null;
+        
+        // Функция для преобразования имени в родительный падеж
+        function toGenitiveCase(name) {
+            if (!name) return '';
+            if (name.endsWith('ий')) return name.slice(0, -2) + 'ия';
+            if (name.endsWith('а') || name.endsWith('я')) return name;
+            if (name.endsWith('ь')) return name.slice(0, -1) + 'я';
+            return name + 'а';
+        }
         
         function getCompId() { return parseInt(new URLSearchParams(window.location.search).get('comp')); }
         
@@ -88,12 +97,10 @@
             const p = currentParticipant;
             const comp = currentCompetition;
             
-            let placeText = p.place;
-            if (p.place === '1') placeText = 'I';
-            else if (p.place === '2') placeText = 'II';
-            else if (p.place === '3') placeText = 'III';
+            const placeText = p.place;
+            const nameGenitive = toGenitiveCase(p.member1_name || '');
             
-            // 1. Загружаем картинку-фон
+            // Загружаем картинку-фон
             const img = new Image();
             img.crossOrigin = "Anonymous";
             img.src = BACKGROUND_IMG_URL;
@@ -103,64 +110,77 @@
                 img.onerror = reject;
             });
             
-            // 2. Создаём canvas и рисуем фон
+            // Создаём canvas
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             canvas.width = img.width;
             canvas.height = img.height;
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
             
-            // 3. Рисуем ВЕСЬ текст поверх картинки
-            // ШАПКА (вверху, по центру)
-            ctx.font = 'bold 14px "Times New Roman", Georgia, serif';
+            // Координаты по образцу со второго скриншота
+            const centerX = canvas.width / 2;
+            
+            // 1. Шапка (вверху)
+            ctx.font = 'bold 12px "Times New Roman", Georgia, serif';
             ctx.fillStyle = '#000000';
             ctx.textAlign = 'center';
-            const headerText = [
+            const headerLines = [
                 'Управление культуры, молодёжи и спорта',
                 'муниципального образования «Муниципальный округ Дебёсский район Удмуртской Республики»'
             ];
-            let headerY = 80; // отступ сверху, подберите визуально
-            headerText.forEach(line => {
-                ctx.fillText(line, canvas.width / 2, headerY);
-                headerY += 20;
+            let headerY = 50;
+            headerLines.forEach(line => {
+                ctx.fillText(line, centerX, headerY);
+                headerY += 18;
             });
             
-            // ИМЯ УЧАСТНИКА (по центру)
-            ctx.font = 'bold 28px "Times New Roman", Georgia, serif';
-            ctx.fillStyle = '#000000';
-            ctx.fillText(p.member1_name || '', canvas.width / 2, canvas.height / 2 - 40);
-            
-            // МЕСТО
-            ctx.font = 'bold 48px "Times New Roman", Georgia, serif';
+            // 2. ГРАМОТА
+            ctx.font = 'bold 38px "Times New Roman", Georgia, serif';
             ctx.fillStyle = '#b8860b';
-            ctx.fillText(placeText, canvas.width / 2, canvas.height / 2 + 20);
+            ctx.fillText('ГРАМОТА', centerX, 130);
             
-            // НАЗВАНИЕ СОРЕВНОВАНИЯ
-            ctx.font = '20px "Times New Roman", Georgia, serif';
+            // 3. НАГРАЖДАЕТ
+            ctx.font = 'bold 18px "Times New Roman", Georgia, serif';
             ctx.fillStyle = '#000000';
-            ctx.fillText(comp.name, canvas.width / 2, canvas.height / 2 + 90);
+            ctx.fillText('НАГРАЖДАЕТ', centerX, 200);
             
-            // РЕЗУЛЬТАТ (если есть)
+            // 4. Имя в родительном падеже
+            ctx.font = 'bold 24px "Times New Roman", Georgia, serif';
+            ctx.fillText(nameGenitive, centerX, 260);
+            
+            // 5. за 1 место
+            ctx.font = 'bold 20px "Times New Roman", Georgia, serif';
+            ctx.fillText(`за ${placeText} место`, centerX, 320);
+            
+            // 6. в районных соревнованиях
+            ctx.font = '18px "Times New Roman", Georgia, serif';
+            ctx.fillText('в районных соревнованиях', centerX, 380);
+            
+            // 7. Название соревнования
+            ctx.font = 'bold 20px "Times New Roman", Georgia, serif';
+            ctx.fillText(comp.name, centerX, 440);
+            
+            // 8. Результат (если есть)
             if (p.result && p.result.trim() !== '') {
                 ctx.font = '16px "Times New Roman", Georgia, serif';
-                ctx.fillText(`результат: ${p.result}`, canvas.width / 2, canvas.height / 2 + 130);
+                ctx.fillText(`результат: ${p.result}`, centerX, 500);
             }
             
-            // НАЧАЛЬНИК (слева внизу)
+            // 9. Начальник (слева)
             ctx.font = '14px "Times New Roman", Georgia, serif';
             ctx.textAlign = 'left';
-            ctx.fillText('Начальник', 70, canvas.height - 100);
+            ctx.fillText('Начальник', 80, canvas.height - 100);
             
-            // ФАМИЛИЯ НАЧАЛЬНИКА
+            // 10. Подпись начальника
             ctx.font = 'bold 16px "Times New Roman", Georgia, serif';
-            ctx.fillText('А.С. Дурновцев', 70, canvas.height - 75);
+            ctx.fillText('А.С. Дурновцев', 80, canvas.height - 75);
             
-            // ДАТА И МЕСТО ПРОВЕДЕНИЯ (внизу справа)
+            // 11. Дата и место проведения (справа)
             ctx.font = '14px "Times New Roman", Georgia, serif';
             ctx.textAlign = 'right';
-            ctx.fillText(`${comp.event_place || ''} ${comp.date || ''}`, canvas.width - 50, canvas.height - 50);
+            ctx.fillText(`${comp.event_place || ''} ${comp.date || ''}`, canvas.width - 60, canvas.height - 60);
             
-            // 4. Преобразуем canvas в PDF
+            // Сохраняем PDF
             const imgData = canvas.toDataURL('image/png');
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
