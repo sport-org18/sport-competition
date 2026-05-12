@@ -117,7 +117,6 @@
             canvas.height = img.height;
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
             
-            // Координаты по образцу со второго скриншота
             const centerX = canvas.width / 2;
             
             // 1. Шапка (вверху)
@@ -142,43 +141,43 @@
             // 3. НАГРАЖДАЕТ
             ctx.font = 'bold 18px "Times New Roman", Georgia, serif';
             ctx.fillStyle = '#000000';
-            ctx.fillText('НАГРАЖДАЕТ', centerX, 200);
+            ctx.fillText('НАГРАЖДАЕТ', centerX, 190);
             
             // 4. Имя в родительном падеже
             ctx.font = 'bold 24px "Times New Roman", Georgia, serif';
-            ctx.fillText(nameGenitive, centerX, 260);
+            ctx.fillText(nameGenitive, centerX, 240);
             
             // 5. за 1 место
             ctx.font = 'bold 20px "Times New Roman", Georgia, serif';
-            ctx.fillText(`за ${placeText} место`, centerX, 320);
+            ctx.fillText(`за ${placeText} место`, centerX, 295);
             
             // 6. в районных соревнованиях
             ctx.font = '18px "Times New Roman", Georgia, serif';
-            ctx.fillText('в районных соревнованиях', centerX, 380);
+            ctx.fillText('в районных соревнованиях', centerX, 350);
             
             // 7. Название соревнования
             ctx.font = 'bold 20px "Times New Roman", Georgia, serif';
-            ctx.fillText(comp.name, centerX, 440);
+            ctx.fillText(comp.name, centerX, 405);
             
             // 8. Результат (если есть)
             if (p.result && p.result.trim() !== '') {
                 ctx.font = '16px "Times New Roman", Georgia, serif';
-                ctx.fillText(`результат: ${p.result}`, centerX, 500);
+                ctx.fillText(`результат: ${p.result}`, centerX, 460);
             }
             
-            // 9. Начальник (слева)
+            // 9. Начальник (слева) — подняли на 50 пикселей вверх и сдвинули вправо
             ctx.font = '14px "Times New Roman", Georgia, serif';
             ctx.textAlign = 'left';
-            ctx.fillText('Начальник', 80, canvas.height - 100);
+            ctx.fillText('Начальник', 100, canvas.height - 140);
             
             // 10. Подпись начальника
             ctx.font = 'bold 16px "Times New Roman", Georgia, serif';
-            ctx.fillText('А.С. Дурновцев', 80, canvas.height - 75);
+            ctx.fillText('А.С. Дурновцев', 100, canvas.height - 115);
             
-            // 11. Дата и место проведения (справа)
+            // 11. Дата и место проведения (справа) — подняли и выровняли с начальником
             ctx.font = '14px "Times New Roman", Georgia, serif';
             ctx.textAlign = 'right';
-            ctx.fillText(`${comp.event_place || ''} ${comp.date || ''}`, canvas.width - 60, canvas.height - 60);
+            ctx.fillText(`${comp.event_place || ''} ${comp.date || ''}`, canvas.width - 60, canvas.height - 125);
             
             // Сохраняем PDF
             const imgData = canvas.toDataURL('image/png');
