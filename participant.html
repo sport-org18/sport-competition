@@ -44,8 +44,8 @@
         const SUPABASE_URL = "https://kcpyfbdslhisfqqobvje.supabase.co";
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjcHlmYmRzbGhpc2ZxcW9idmplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1Mjg1OTAsImV4cCI6MjA5MzEwNDU5MH0.Y4861DLKZ0FG3_rkosf_qH0w5P2F_hdheIBOfTTSmsI";
         
-        // ПРЯМАЯ ССЫЛКА НА КАРТИНКУ С ЯНДЕКС ДИСКА (ваш дизайн грамоты)
-        const BACKGROUND_IMG_URL = "https://disk.yandex.ru/i/QmrW6XRNS6BhKQ";
+        // ПРЯМАЯ ССЫЛКА НА КАРТИНКУ-ФОН (ВАШ ПОЛНЫЙ ДИЗАЙН)
+        const BACKGROUND_IMG_URL = "https://i.ibb.co/WNG80MfL/0.png";
         // ====================================
         
         let supabaseClient = null;
@@ -110,28 +110,31 @@
             canvas.height = img.height;
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
             
-            // 3. Рисуем текст поверх картинки (настройте координаты и шрифты)
-            ctx.font = 'bold 32px "Times New Roman", Georgia, serif';
+            // 3. Рисуем текст поверх картинки
+            // ⚠️ КООРДИНАТЫ НУЖНО НАСТРОИТЬ ПОД ВАШУ КАРТИНКУ ⚠️
+            // Сейчас стоят примерные значения (центр листа)
+            const centerX = canvas.width / 2;
+            
+            // Имя участника
+            ctx.font = 'bold 28px "Times New Roman", Georgia, serif';
             ctx.fillStyle = '#000000';
             ctx.textAlign = 'center';
+            ctx.fillText(p.member1_name || '', centerX, canvas.height / 2 - 40);
             
-            // Имя участника (примерные координаты — отрегулируйте)
-            ctx.fillText(p.member1_name || '', canvas.width/2, canvas.height/2 - 50);
-            
-            // Место (римскими цифрами)
+            // Место
             ctx.font = 'bold 48px "Times New Roman", Georgia, serif';
             ctx.fillStyle = '#b8860b';
-            ctx.fillText(placeText, canvas.width/2, canvas.height/2 + 20);
+            ctx.fillText(placeText, centerX, canvas.height / 2 + 20);
             
             // Название соревнования
             ctx.font = '20px "Times New Roman", Georgia, serif';
             ctx.fillStyle = '#000000';
-            ctx.fillText(comp.name, canvas.width/2, canvas.height/2 + 100);
+            ctx.fillText(comp.name, centerX, canvas.height / 2 + 90);
             
             // Результат (если есть)
-            if (p.result) {
+            if (p.result && p.result.trim() !== '') {
                 ctx.font = '16px "Times New Roman", Georgia, serif';
-                ctx.fillText(`результат: ${p.result}`, canvas.width/2, canvas.height/2 + 140);
+                ctx.fillText(`результат: ${p.result}`, centerX, canvas.height / 2 + 130);
             }
             
             // Дата и место проведения (внизу справа)
