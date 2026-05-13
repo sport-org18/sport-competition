@@ -44,31 +44,38 @@
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjcHlmYmRzbGhpc2ZxcW9idmplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1Mjg1OTAsImV4cCI6MjA5MzEwNDU5MH0.Y4861DLKZ0FG3_rkosf_qH0w5P2F_hdheIBOfTTSmsI";
         const BACKGROUND_IMG_URL = "https://i.ibb.co/WNG80MfL/0.png";
         
-        // ⚠️ ВСЕ КООРДИНАТЫ — ОТСТУП ОТ ВЕРХА (кроме x для подписи и даты)
-        // МЕНЯЙТЕ ТОЛЬКО ЧИСЛА, ПОКА НЕ ПОПАДЁТЕ В НУЖНОЕ МЕСТО
+        // ⚠️ КООРДИНАТЫ (ОТСТУПЫ СВЕРХУ) — МЕНЯЙТЕ ЧИСЛА
         const Y = {
-            headerStart: 150,       // начало шапки (увеличено на 100)
-            headerLineHeight: 18,
-            award: 290,             // слово "НАГРАЖДАЕТ" (+100)
-            name: 335,              // имя участника (+100)
-            place: 380,             // "за X место" (+100)
-            district: 420,          // "в районных соревнованиях" (+100)
-            competition: 465,       // название соревнования (+100)
-            result: 505,            // "результат: ..." (+100)
-            signLabel: 780,         // слово "Начальник" (+100)
-            signName: 805,          // подпись (+100)
-            datePlace: 790          // дата и место (+100)
+            headerStart: 50,        // начало шапки
+            award: 160,             // "НАГРАЖДАЕТ"
+            name: 210,              // имя участника
+            place: 260,             // "за X место"
+            district: 300,          // "в районных соревнованиях"
+            competition: 340,       // название соревнования
+            result: 380,            // результат
+            datePlace: 650          // дата и место проведения
         };
         
         const X = {
-            signLabel: 100,         // отступ слева для "Начальник"
-            signName: 100,          // отступ слева для подписи
-            datePlace: -80          // отступ справа для даты (отрицательное число = от правого края)
+            datePlace: -80          // отступ справа для даты (отрицательное число)
         };
         
         let supabaseClient = null;
         let currentCompetition = null;
         let currentParticipant = null;
+        
+        // Функция для преобразования даты в формат ДД.ММ.ГГГГ
+        function formatDate(dateString) {
+            if (!dateString) return '';
+            // Если дата пришла в формате ГГГГ-ММ-ДД
+            if (dateString.includes('-')) {
+                const parts = dateString.split('-');
+                if (parts.length === 3) {
+                    return `${parts[2]}.${parts[1]}.${parts[0]}`;
+                }
+            }
+            return dateString;
+        }
         
         function toGenitiveCase(name) {
             if (!name) return '';
@@ -114,6 +121,7 @@
             const comp = currentCompetition;
             const placeText = p.place;
             const nameGenitive = toGenitiveCase(p.member1_name || '');
+            const formattedDate = formatDate(comp.date);
             
             const img = new Image();
             img.crossOrigin = "Anonymous";
@@ -139,7 +147,7 @@
             let headerY = Y.headerStart;
             headerLines.forEach(line => {
                 ctx.fillText(line, centerX, headerY);
-                headerY += Y.headerLineHeight;
+                headerY += 18;
             });
             
             // 2. НАГРАЖДАЕТ
@@ -158,29 +166,20 @@
             ctx.font = '18px "Times New Roman", Georgia, serif';
             ctx.fillText('в районных соревнованиях', centerX, Y.district);
             
-            // 6. СОРЕВНОВАНИЕ
+            // 6. НАЗВАНИЕ СОРЕВНОВАНИЯ
             ctx.font = 'bold 20px "Times New Roman", Georgia, serif';
             ctx.fillText(comp.name, centerX, Y.competition);
             
-            // 7. РЕЗУЛЬТАТ
+            // 7. РЕЗУЛЬТАТ (если есть)
             if (p.result && p.result.trim() !== '') {
                 ctx.font = '16px "Times New Roman", Georgia, serif';
                 ctx.fillText(`результат: ${p.result}`, centerX, Y.result);
             }
             
-            // 8. НАЧАЛЬНИК (слева)
-            ctx.font = '14px "Times New Roman", Georgia, serif';
-            ctx.textAlign = 'left';
-            ctx.fillText('Начальник', X.signLabel, Y.signLabel);
-            
-            // 9. ФАМИЛИЯ
-            ctx.font = 'bold 16px "Times New Roman", Georgia, serif';
-            ctx.fillText('А.С. Дурновцев', X.signName, Y.signName);
-            
-            // 10. ДАТА И МЕСТО (справа)
+            // 8. ДАТА И МЕСТО ПРОВЕДЕНИЯ (справа внизу)
             ctx.font = '14px "Times New Roman", Georgia, serif';
             ctx.textAlign = 'right';
-            ctx.fillText(`${comp.event_place || ''} ${comp.date || ''}`, canvas.width + X.datePlace, Y.datePlace);
+            ctx.fillText(`${comp.event_place || ''} ${formattedDate}`, canvas.width + X.datePlace, Y.datePlace);
             
             const imgData = canvas.toDataURL('image/png');
             const { jsPDF } = window.jspdf;
