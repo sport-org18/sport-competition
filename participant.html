@@ -44,7 +44,7 @@
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjcHlmYmRzbGhpc2ZxcW9idmplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1Mjg1OTAsImV4cCI6MjA5MzEwNDU5MH0.Y4861DLKZ0FG3_rkosf_qH0w5P2F_hdheIBOfTTSmsI";
         const BACKGROUND_IMG_URL = "https://i.ibb.co/WNG80MfL/0.png";
         
-        // ИДЕАЛЬНЫЕ КООРДИНАТЫ (запомнены)
+        // ИДЕАЛЬНЫЕ КООРДИНАТЫ
         const Y = {
             headerStart: 280,        
             award: 415,             
@@ -53,6 +53,7 @@
             district: 540,          
             competition: 570,       
             result: 600,            
+            team: 620,              // новая строка для команды
             signLabel: 730,         
             signName: 750,          
             datePlace1: 730,        
@@ -113,7 +114,7 @@
             document.getElementById('loading').style.display = 'none';
             if (!data || data.length === 0) { showMessage('Участник не найден', 'error'); return; }
             const p = data[0];
-            if (p.place === 'Не определено') { showMessage('Результаты ещё не опубликованы', 'info'); return; }
+            if (!p.place || p.place === '') { showMessage('Результаты ещё не опубликованы', 'info'); return; }
             currentParticipant = p;
             await generateAndDownloadPDF();
         }
@@ -124,6 +125,7 @@
             const placeText = p.place;
             const nameGenitive = toGenitiveCase(p.member1_name || '');
             const formattedDate = formatDate(comp.date);
+            const teamText = p.team ? `команда: ${p.team}` : '';
             
             const img = new Image();
             img.crossOrigin = "Anonymous";
@@ -170,6 +172,12 @@
                 ctx.fillText(`с результатом ${p.result}`, centerX, Y.result);
             }
             
+            // Команда (если есть)
+            if (teamText) {
+                ctx.font = '18px "Times New Roman", Georgia, serif';
+                ctx.fillText(teamText, centerX, Y.team);
+            }
+            
             ctx.font = '20px "Times New Roman", Georgia, serif';
             ctx.textAlign = 'left';
             ctx.fillText('Начальник', 130, Y.signLabel);
@@ -180,20 +188,11 @@
             ctx.fillText(formattedDate, canvas.width - 130, Y.datePlace1);
             ctx.fillText(comp.event_place || '', canvas.width - 130, Y.datePlace2);
             
-            // СОЗДАЁМ PDF БЕЗ БЕЛЫХ ПОЛЕЙ
             const imgData = canvas.toDataURL('image/png');
             const { jsPDF } = window.jspdf;
-            
-            // Рассчитываем реальные размеры для A4
-            const pdfWidth = 210; // мм
+            const pdfWidth = 210;
             const pdfHeight = (canvas.height / canvas.width) * pdfWidth;
-            
-            const doc = new jsPDF({ 
-                orientation: 'portrait', 
-                unit: 'mm', 
-                format: [pdfWidth, pdfHeight]  // кастомный размер под картинку
-            });
-            
+            const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [pdfWidth, pdfHeight] });
             doc.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
             doc.save(`Грамота_${p.member1_name}.pdf`);
             
