@@ -44,29 +44,36 @@
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjcHlmYmRzbGhpc2ZxcW9idmplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1Mjg1OTAsImV4cCI6MjA5MzEwNDU5MH0.Y4861DLKZ0FG3_rkosf_qH0w5P2F_hdheIBOfTTSmsI";
         const BACKGROUND_IMG_URL = "https://i.ibb.co/WNG80MfL/0.png";
         
-        // ⚠️ КООРДИНАТЫ (меняйте только числа)
+        // КООРДИНАТЫ (оставляем как у вас)
         const Y = {
-            headerStart: 280,        // шапка
-            award: 380,             // "НАГРАЖДАЕТ"
-            name: 430,              // имя
-            place: 470,             // "за X место"
-            district: 510,          // "в районных соревнованиях"
-            competition: 540,       // название соревнования
-            result: 570,            // результат
-            signLabel: 700,         // слово "Начальник"
-            signName: 720,          // фамилия начальника
-            datePlace: 720          // дата и место
+            headerStart: 280,        
+            award: 380,             
+            name: 430,              
+            place: 470,             
+            district: 510,          
+            competition: 540,       
+            result: 570,            
+            signLabel: 700,         
+            signName: 720,          
+            datePlace1: 700,        // дата (первая строка)
+            datePlace2: 720         // место проведения (вторая строка)
         };
         
         let supabaseClient = null;
         let currentCompetition = null;
         let currentParticipant = null;
         
+        // Функция родительного падежа для полного имени
         function toGenitiveCase(name) {
             if (!name) return '';
-            if (name.endsWith('а') || name.endsWith('я')) return name;
-            if (name.endsWith('ий')) return name.slice(0, -2) + 'ия';
-            return name + 'а';
+            const parts = name.trim().split(/\s+/);
+            const genitiveParts = parts.map(part => {
+                if (part.endsWith('а') || part.endsWith('я')) return part;
+                if (part.endsWith('ий')) return part.slice(0, -2) + 'ия';
+                if (part.endsWith('ь')) return part.slice(0, -1) + 'я';
+                return part + 'а';
+            });
+            return genitiveParts.join(' ');
         }
         
         function formatDate(dateString) {
@@ -132,25 +139,27 @@
             
             const centerX = canvas.width / 2;
             
-            // 1. ШАПКА
+            // 1. ШАПКА (разбита на 4 строки)
             ctx.font = 'bold 20px "Times New Roman", Georgia, serif';
             ctx.fillStyle = '#000000';
             ctx.textAlign = 'center';
             const headerLines = [
                 'Управление культуры, молодёжи и спорта',
-                'муниципального образования «Муниципальный округ Дебёсский район Удмуртской Республики»'
+                'муниципального образования',
+                '«Муниципальный округ Дебёсский район',
+                'Удмуртской Республики»'
             ];
             let headerY = Y.headerStart;
             headerLines.forEach(line => {
                 ctx.fillText(line, centerX, headerY);
-                headerY += 18;
+                headerY += 28;
             });
             
             // 2. НАГРАЖДАЕТ
             ctx.font = 'bold 28px "Times New Roman", Georgia, serif';
             ctx.fillText('НАГРАЖДАЕТ', centerX, Y.award);
             
-            // 3. ИМЯ
+            // 3. ИМЯ (в родительном падеже)
             ctx.font = 'bold 22px "Times New Roman", Georgia, serif';
             ctx.fillText(nameGenitive, centerX, Y.name);
             
@@ -162,18 +171,18 @@
             ctx.font = '20px "Times New Roman", Georgia, serif';
             ctx.fillText('в районных соревнованиях', centerX, Y.district);
             
-            // 6. СОРЕВНОВАНИЕ
+            // 6. СОРЕВНОВАНИЕ (в кавычках)
             ctx.font = 'bold 22px "Times New Roman", Georgia, serif';
-            ctx.fillText(comp.name, centerX, Y.competition);
+            ctx.fillText(`«${comp.name}»`, centerX, Y.competition);
             
-            // 7. РЕЗУЛЬТАТ
+            // 7. РЕЗУЛЬТАТ ("с результатом")
             if (p.result && p.result.trim() !== '') {
                 ctx.font = '20px "Times New Roman", Georgia, serif';
-                ctx.fillText(`результат: ${p.result}`, centerX, Y.result);
+                ctx.fillText(`с результатом ${p.result}`, centerX, Y.result);
             }
             
             // 8. НАЧАЛЬНИК (слева)
-            ctx.font = '14px "Times New Roman", Georgia, serif';
+            ctx.font = '20px "Times New Roman", Georgia, serif';
             ctx.textAlign = 'left';
             ctx.fillText('Начальник', 80, Y.signLabel);
             
@@ -181,10 +190,11 @@
             ctx.font = 'bold 20px "Times New Roman", Georgia, serif';
             ctx.fillText('А.С. Дурновцев', 80, Y.signName);
             
-            // 10. ДАТА И МЕСТО (справа)
+            // 10. ДАТА И МЕСТО (справа, две строки)
             ctx.font = '20px "Times New Roman", Georgia, serif';
             ctx.textAlign = 'right';
-            ctx.fillText(`${comp.event_place || ''} ${formattedDate}`, canvas.width - 60, Y.datePlace);
+            ctx.fillText(formattedDate, canvas.width - 60, Y.datePlace1);
+            ctx.fillText(comp.event_place || '', canvas.width - 60, Y.datePlace2);
             
             const imgData = canvas.toDataURL('image/png');
             const { jsPDF } = window.jspdf;
