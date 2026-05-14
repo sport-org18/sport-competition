@@ -53,7 +53,9 @@
             district: 290,          // "в районных соревнованиях"
             competition: 330,       // название соревнования
             result: 370,            // результат
-            datePlace: 620          // дата и место
+            signLabel: 580,         // слово "Начальник"
+            signName: 610,          // фамилия начальника
+            datePlace: 650          // дата и место
         };
         
         let supabaseClient = null;
@@ -130,9 +132,7 @@
             
             const centerX = canvas.width / 2;
             
-            // РИСУЕМ ТОЛЬКО ТО, ЧЕГО НЕТ НА ФОНЕ
-            
-            // 1. Шапка (Управление культуры...)
+            // 1. ШАПКА
             ctx.font = 'bold 12px "Times New Roman", Georgia, serif';
             ctx.fillStyle = '#000000';
             ctx.textAlign = 'center';
@@ -150,29 +150,38 @@
             ctx.font = 'bold 20px "Times New Roman", Georgia, serif';
             ctx.fillText('НАГРАЖДАЕТ', centerX, Y.award);
             
-            // 3. Имя участника (в родительном падеже)
+            // 3. ИМЯ
             ctx.font = 'bold 26px "Times New Roman", Georgia, serif';
             ctx.fillText(nameGenitive, centerX, Y.name);
             
-            // 4. за X место
+            // 4. МЕСТО
             ctx.font = 'bold 22px "Times New Roman", Georgia, serif';
             ctx.fillText(`за ${placeText} место`, centerX, Y.place);
             
-            // 5. в районных соревнованиях
+            // 5. В РАЙОННЫХ СОРЕВНОВАНИЯХ
             ctx.font = '18px "Times New Roman", Georgia, serif';
             ctx.fillText('в районных соревнованиях', centerX, Y.district);
             
-            // 6. Название соревнования
+            // 6. СОРЕВНОВАНИЕ
             ctx.font = 'bold 20px "Times New Roman", Georgia, serif';
             ctx.fillText(comp.name, centerX, Y.competition);
             
-            // 7. Результат (если есть)
+            // 7. РЕЗУЛЬТАТ
             if (p.result && p.result.trim() !== '') {
                 ctx.font = '16px "Times New Roman", Georgia, serif';
                 ctx.fillText(`результат: ${p.result}`, centerX, Y.result);
             }
             
-            // 8. Дата и место проведения (внизу справа)
+            // 8. НАЧАЛЬНИК (слева)
+            ctx.font = '14px "Times New Roman", Georgia, serif';
+            ctx.textAlign = 'left';
+            ctx.fillText('Начальник', 80, Y.signLabel);
+            
+            // 9. ПОДПИСЬ
+            ctx.font = 'bold 16px "Times New Roman", Georgia, serif';
+            ctx.fillText('А.С. Дурновцев', 80, Y.signName);
+            
+            // 10. ДАТА И МЕСТО (справа)
             ctx.font = '14px "Times New Roman", Georgia, serif';
             ctx.textAlign = 'right';
             ctx.fillText(`${comp.event_place || ''} ${formattedDate}`, canvas.width - 60, Y.datePlace);
