@@ -55,7 +55,7 @@
             result: 570,            // результат
             signLabel: 700,         // слово "Начальник"
             signName: 720,          // фамилия начальника
-            datePlace: 700          // дата и место
+            datePlace: 720          // дата и место
         };
         
         let supabaseClient = null;
@@ -151,7 +151,7 @@
             ctx.fillText('НАГРАЖДАЕТ', centerX, Y.award);
             
             // 3. ИМЯ
-            ctx.font = 'bold 26px "Times New Roman", Georgia, serif';
+            ctx.font = 'bold 22px "Times New Roman", Georgia, serif';
             ctx.fillText(nameGenitive, centerX, Y.name);
             
             // 4. МЕСТО
@@ -163,7 +163,7 @@
             ctx.fillText('в районных соревнованиях', centerX, Y.district);
             
             // 6. СОРЕВНОВАНИЕ
-            ctx.font = 'bold 24px "Times New Roman", Georgia, serif';
+            ctx.font = 'bold 22px "Times New Roman", Georgia, serif';
             ctx.fillText(comp.name, centerX, Y.competition);
             
             // 7. РЕЗУЛЬТАТ
