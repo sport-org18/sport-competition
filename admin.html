@@ -219,4 +219,183 @@
                 return `
                     <div class="competition-card">
                         <div class="competition-title">🏅 ${comp.name}</div>
-                        <div class="stats">📅 Дата: ${comp.date} | 📍 ${comp.event_place || '—'} |
+                        <div class="stats">📅 Дата: ${comp.date} | 📍 ${comp.event_place || '—'} | 👥 Участников: ${participantsCount}</div>
+                        <div class="link-box">
+                            🔗 Ссылка для РЕГИСТРАЦИИ:<br>
+                            <a href="${regLink}" target="_blank">${regLink}</a>
+                        </div>
+                        <div class="link-box link-box-gold">
+                            📄 Ссылка для ПОЛУЧЕНИЯ ГРАМОТЫ:<br>
+                            <a href="${certLink}" target="_blank">${certLink}</a>
+                        </div>
+                        <button class="btn" onclick="deleteCompetition(${comp.id})" style="background:#e74c3c; margin-top:10px;">🗑️ Удалить</button>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        async function deleteCompetition(id) {
+            if (!confirm('Удалить соревнование?')) return;
+            await supabaseClient.from('participants').delete().eq('competition_id', id);
+            await supabaseClient.from('competitions').delete().eq('id', id);
+            loadCompetitions();
+        }
+        
+        function updateCompetitionSelect() {
+            const select = document.getElementById('selectCompetition');
+            select.innerHTML = '<option value="">-- Выберите соревнование --</option>' + competitionsList.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+        }
+        
+        function addAgeCategory() {
+            const min = document.getElementById('catMin').value;
+            const max = document.getElementById('catMax').value;
+            const name = document.getElementById('catName').value;
+            if (!min || !max || !name) { alert('Заполните все поля'); return; }
+            ageCategoriesBuffer.push({ min: parseInt(min), max: parseInt(max), name: name });
+            document.getElementById('catMin').value = '';
+            document.getElementById('catMax').value = '';
+            document.getElementById('catName').value = '';
+            updateAgeCategoriesDisplay();
+        }
+        
+        function removeAgeCategory(idx) { ageCategoriesBuffer.splice(idx, 1); updateAgeCategoriesDisplay(); }
+        
+        function updateAgeCategoriesDisplay() {
+            const container = document.getElementById('ageCategoriesList');
+            container.innerHTML = ageCategoriesBuffer.map((cat, idx) => `<div class="age-category-item">${cat.min}-${cat.max} лет: ${cat.name} <button onclick="removeAgeCategory(${idx})" style="background:none; border:none; cursor:pointer;">✖</button></div>`).join('');
+        }
+        
+        async function createCompetition() {
+            if (!supabaseClient) { alert('Подключитесь к Supabase'); return; }
+            const name = document.getElementById('newCompName').value.trim();
+            const date = document.getElementById('newCompDate').value;
+            const eventPlace = document.getElementById('eventPlace').value.trim();
+            const orgHeader = document.getElementById('orgHeader').value.trim();
+            const signPosition = document.getElementById('signPosition').value.trim();
+            const signName = document.getElementById('signName').value.trim();
+            
+            if (!name || !date) { alert('Заполните название и дату'); return; }
+            if (ageCategoriesBuffer.length === 0) { alert('Добавьте категорию'); return; }
+            
+            const newComp = {
+                id: Date.now(),
+                name: name, date: date,
+                event_place: eventPlace,
+                org_header: orgHeader,
+                sign_position: signPosition,
+                sign_name: signName,
+                certificate_page_url: `${BASE_URL}participant.html`,
+                age_categories: ageCategoriesBuffer,
+                created_at: new Date()
+            };
+            const { error } = await supabaseClient.from('competitions').insert([newComp]);
+            if (error) { alert('Ошибка: ' + error.message); return; }
+            ageCategoriesBuffer = [];
+            updateAgeCategoriesDisplay();
+            document.getElementById('newCompName').value = '';
+            document.getElementById('newCompDate').value = '';
+            loadCompetitions();
+            alert('Соревнование создано!');
+        }
+        
+        async function loadParticipantsForResults() {
+            const compId = parseInt(document.getElementById('selectCompetition').value);
+            if (!compId) return;
+            
+            const competition = competitionsList.find(c => c.id === compId);
+            if (competition && competition.age_categories) {
+                currentCompetitionAgeCategories = competition.age_categories;
+                const filterSelect = document.getElementById('categoryFilter');
+                filterSelect.innerHTML = '<option value="all">Все категории</option>' + 
+                    currentCompetitionAgeCategories.map(cat => `<option value="${cat.name}">${cat.name}</option>`).join('');
+            }
+            
+            const { data } = await supabaseClient.from('participants').select('*').eq('competition_id', compId);
+            participantsList = data || [];
+            filterParticipants();
+        }
+        
+        function filterParticipants() {
+            const selectedCategory = document.getElementById('categoryFilter').value;
+            if (selectedCategory === 'all') {
+                filteredParticipantsList = [...participantsList];
+            } else {
+                filteredParticipantsList = participantsList.filter(p => p.category === selectedCategory);
+            }
+            updateResultsTable();
+        }
+        
+        function updateResultsTable() {
+            const tbody = document.getElementById('resultsTableBody');
+            if (filteredParticipantsList.length === 0) { tbody.innerHTML = '<tr><td colspan="7">Нет участников в этой категории</td></tr>'; return; }
+            
+            tbody.innerHTML = filteredParticipantsList.map(p => {
+                let fullName = p.member1_name || '';
+                if (p.member2_name && p.member2_name.trim() !== '') {
+                    fullName += ' / ' + p.member2_name;
+                }
+                return `
+                    <tr>
+                        <td>${fullName}</td>
+                        <td>${p.email}</td>
+                        <td>${p.team || '-'}</td>
+                        <td>${p.category || '-'}</td>
+                        <td><input type="text" class="place-input" value="${p.place || ''}" placeholder="место" onchange="updatePlace(${p.id}, this.value)"></td>
+                        <td><input type="text" class="result-input" value="${p.result || ''}" placeholder="например: 05:34" onchange="updateResult(${p.id}, this.value)"></td>
+                        <td><span class="status-badge">${p.place ? '✅ Готово' : '⏳ Ожидает'}</span></td>
+                    </tr>
+                `;
+            }).join('');
+            
+            document.getElementById('resultsStats').innerHTML = `👥 Всего в этой категории: ${filteredParticipantsList.length} | 🏆 С результатами: ${filteredParticipantsList.filter(p => p.place).length}`;
+        }
+        
+        async function updatePlace(participantId, place) {
+            await supabaseClient.from('participants').update({ place: place }).eq('id', participantId);
+            const index = participantsList.findIndex(p => p.id === participantId);
+            if (index !== -1) participantsList[index].place = place;
+            filterParticipants();
+        }
+        
+        async function updateResult(participantId, result) {
+            await supabaseClient.from('participants').update({ result: result }).eq('id', participantId);
+            const index = participantsList.findIndex(p => p.id === participantId);
+            if (index !== -1) participantsList[index].result = result;
+        }
+        
+        function exportResultsToCSV() {
+            const headers = ['ФИО', 'Email', 'Команда', 'Категория', 'Место', 'Результат'];
+            const rows = filteredParticipantsList.map(p => {
+                let fullName = p.member1_name || '';
+                if (p.member2_name && p.member2_name.trim() !== '') {
+                    fullName += ' / ' + p.member2_name;
+                }
+                return [fullName, p.email, p.team || '-', p.category || '-', p.place || '-', p.result || '-'];
+            });
+            const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
+            const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `results_${new Date().toISOString().slice(0,10)}.csv`;
+            link.click();
+        }
+        
+        function showCertificatesInfo() {
+            const participantsWithoutPlace = participantsList.filter(p => !p.place || p.place === '');
+            alert(`Функция генерации сертификатов для всех участников (без призовых мест) будет добавлена позже.\n\nСейчас участников без места: ${participantsWithoutPlace.length}`);
+        }
+        
+        function showTab(tabName) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById('supabase-tab').style.display = tabName === 'supabase' ? 'block' : 'none';
+            document.getElementById('competitions-tab').style.display = tabName === 'competitions' ? 'block' : 'none';
+            document.getElementById('results-tab').style.display = tabName === 'results' ? 'block' : 'none';
+            if (tabName === 'competitions') loadCompetitions();
+            if (tabName === 'results') updateCompetitionSelect();
+        }
+        
+        loadSavedSettings();
+    </script>
+</body>
+</html>
