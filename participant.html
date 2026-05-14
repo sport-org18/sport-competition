@@ -44,7 +44,7 @@
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjcHlmYmRzbGhpc2ZxcW9idmplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1Mjg1OTAsImV4cCI6MjA5MzEwNDU5MH0.Y4861DLKZ0FG3_rkosf_qH0w5P2F_hdheIBOfTTSmsI";
         const BACKGROUND_IMG_URL = "https://i.ibb.co/WNG80MfL/0.png";
         
-        // КООРДИНАТЫ (оставляем как у вас)
+        // НОВЫЕ КООРДИНАТЫ
         const Y = {
             headerStart: 280,        
             award: 420,             
@@ -139,7 +139,7 @@
             
             const centerX = canvas.width / 2;
             
-            // 1. ШАПКА (разбита на 4 строки)
+            // 1. ШАПКА
             ctx.font = 'bold 20px "Times New Roman", Georgia, serif';
             ctx.fillStyle = '#000000';
             ctx.textAlign = 'center';
@@ -159,7 +159,7 @@
             ctx.font = 'bold 28px "Times New Roman", Georgia, serif';
             ctx.fillText('НАГРАЖДАЕТ', centerX, Y.award);
             
-            // 3. ИМЯ (в родительном падеже)
+            // 3. ИМЯ
             ctx.font = 'bold 22px "Times New Roman", Georgia, serif';
             ctx.fillText(nameGenitive, centerX, Y.name);
             
@@ -175,26 +175,26 @@
             ctx.font = 'bold 22px "Times New Roman", Georgia, serif';
             ctx.fillText(`«${comp.name}»`, centerX, Y.competition);
             
-            // 7. РЕЗУЛЬТАТ ("с результатом")
+            // 7. РЕЗУЛЬТАТ
             if (p.result && p.result.trim() !== '') {
                 ctx.font = '20px "Times New Roman", Georgia, serif';
                 ctx.fillText(`с результатом ${p.result}`, centerX, Y.result);
             }
             
-            // 8. НАЧАЛЬНИК (слева)
+            // 8. НАЧАЛЬНИК (сдвинут вправо на 50px: было 80, стало 130)
             ctx.font = '20px "Times New Roman", Georgia, serif';
             ctx.textAlign = 'left';
-            ctx.fillText('Начальник', 80, Y.signLabel);
+            ctx.fillText('Начальник', 130, Y.signLabel);
             
-            // 9. ПОДПИСЬ
-            ctx.font = 'bold 20px "Times New Roman", Georgia, serif';
-            ctx.fillText('А.С. Дурновцев', 80, Y.signName);
+            // 9. ПОДПИСЬ (не жирный шрифт, сдвинута вправо на 50px)
+            ctx.font = '20px "Times New Roman", Georgia, serif';
+            ctx.fillText('А.С. Дурновцев', 130, Y.signName);
             
-            // 10. ДАТА И МЕСТО (справа, две строки)
+            // 10. ДАТА И МЕСТО (сдвинуты влево на 70px: было -60, стало -130)
             ctx.font = '20px "Times New Roman", Georgia, serif';
             ctx.textAlign = 'right';
-            ctx.fillText(formattedDate, canvas.width - 60, Y.datePlace1);
-            ctx.fillText(comp.event_place || '', canvas.width - 60, Y.datePlace2);
+            ctx.fillText(formattedDate, canvas.width - 130, Y.datePlace1);
+            ctx.fillText(comp.event_place || '', canvas.width - 130, Y.datePlace2);
             
             const imgData = canvas.toDataURL('image/png');
             const { jsPDF } = window.jspdf;
