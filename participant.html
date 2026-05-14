@@ -44,7 +44,7 @@
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjcHlmYmRzbGhpc2ZxcW9idmplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1Mjg1OTAsImV4cCI6MjA5MzEwNDU5MH0.Y4861DLKZ0FG3_rkosf_qH0w5P2F_hdheIBOfTTSmsI";
         const BACKGROUND_IMG_URL = "https://i.ibb.co/WNG80MfL/0.png";
         
-        // НОВЫЕ КООРДИНАТЫ
+        // ИДЕАЛЬНЫЕ КООРДИНАТЫ (запомнены)
         const Y = {
             headerStart: 280,        
             award: 415,             
@@ -55,15 +55,14 @@
             result: 600,            
             signLabel: 730,         
             signName: 750,          
-            datePlace1: 730,        // дата (первая строка)
-            datePlace2: 750         // место проведения (вторая строка)
+            datePlace1: 730,        
+            datePlace2: 750         
         };
         
         let supabaseClient = null;
         let currentCompetition = null;
         let currentParticipant = null;
         
-        // Функция родительного падежа для полного имени
         function toGenitiveCase(name) {
             if (!name) return '';
             const parts = name.trim().split(/\s+/);
@@ -139,7 +138,7 @@
             
             const centerX = canvas.width / 2;
             
-            // 1. ШАПКА (обычный шрифт, не жирный)
+            // 1. ШАПКА
             ctx.font = '20px "Times New Roman", Georgia, serif';
             ctx.fillStyle = '#000000';
             ctx.textAlign = 'center';
@@ -155,54 +154,47 @@
                 headerY += 28;
             });
             
-            // 2. НАГРАЖДАЕТ (жирный)
             ctx.font = 'bold 28px "Times New Roman", Georgia, serif';
             ctx.fillText('НАГРАЖДАЕТ', centerX, Y.award);
-            
-            // 3. ИМЯ (жирный)
             ctx.font = 'bold 22px "Times New Roman", Georgia, serif';
             ctx.fillText(nameGenitive, centerX, Y.name);
-            
-            // 4. МЕСТО (обычный шрифт, не жирный)
             ctx.font = '24px "Times New Roman", Georgia, serif';
             ctx.fillText(`за ${placeText} место`, centerX, Y.place);
-            
-            // 5. В РАЙОННЫХ СОРЕВНОВАНИЯХ (обычный)
             ctx.font = '20px "Times New Roman", Georgia, serif';
             ctx.fillText('в районных соревнованиях', centerX, Y.district);
-            
-            // 6. СОРЕВНОВАНИЕ (жирный)
             ctx.font = 'bold 22px "Times New Roman", Georgia, serif';
             ctx.fillText(`«${comp.name}»`, centerX, Y.competition);
             
-            // 7. РЕЗУЛЬТАТ (обычный)
             if (p.result && p.result.trim() !== '') {
                 ctx.font = '20px "Times New Roman", Georgia, serif';
                 ctx.fillText(`с результатом ${p.result}`, centerX, Y.result);
             }
             
-            // 8. НАЧАЛЬНИК
             ctx.font = '20px "Times New Roman", Georgia, serif';
             ctx.textAlign = 'left';
             ctx.fillText('Начальник', 130, Y.signLabel);
-            
-            // 9. ПОДПИСЬ
-            ctx.font = '20px "Times New Roman", Georgia, serif';
             ctx.fillText('А.С. Дурновцев', 130, Y.signName);
             
-            // 10. ДАТА И МЕСТО
             ctx.font = '20px "Times New Roman", Georgia, serif';
             ctx.textAlign = 'right';
             ctx.fillText(formattedDate, canvas.width - 130, Y.datePlace1);
             ctx.fillText(comp.event_place || '', canvas.width - 130, Y.datePlace2);
             
+            // СОЗДАЁМ PDF БЕЗ БЕЛЫХ ПОЛЕЙ
             const imgData = canvas.toDataURL('image/png');
             const { jsPDF } = window.jspdf;
-            // Убираем белые поля снизу и сверху
-            const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-            const imgWidth = 210;
-            const imgHeight = (canvas.height * imgWidth) / canvas.width;
-            doc.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+            
+            // Рассчитываем реальные размеры для A4
+            const pdfWidth = 210; // мм
+            const pdfHeight = (canvas.height / canvas.width) * pdfWidth;
+            
+            const doc = new jsPDF({ 
+                orientation: 'portrait', 
+                unit: 'mm', 
+                format: [pdfWidth, pdfHeight]  // кастомный размер под картинку
+            });
+            
+            doc.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
             doc.save(`Грамота_${p.member1_name}.pdf`);
             
             showMessage('✅ Грамота готова!', 'success');
