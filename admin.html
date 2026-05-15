@@ -74,7 +74,6 @@
     <div class="container">
         <h1>🏆 Панель администратора</h1>
         
-        <!-- Индикатор загрузки -->
         <div id="loaderContainer" class="loader-container" style="display: none;">
             <div class="spinner"></div>
             <div class="loading-text">⏳ Загрузка данных...</div>
@@ -130,6 +129,19 @@
                 <div class="form-group">
                     <label>Подпись (ФИО)</label>
                     <input type="text" id="signName" value="А.С. Дурновцев">
+                </div>
+                <div class="form-group">
+                    <label>Единица измерения результата</label>
+                    <select id="resultUnit" onchange="toggleCustomUnit()">
+                        <option value="">-- не выбрано --</option>
+                        <option value="сек">сек</option>
+                        <option value="мин">мин</option>
+                        <option value="м">м</option>
+                        <option value="км">км</option>
+                        <option value="очки">очки</option>
+                        <option value="custom">другое (ввести вручную)</option>
+                    </select>
+                    <input type="text" id="customUnit" placeholder="введите единицу измерения" style="margin-top: 10px; display: none;">
                 </div>
                 <div class="form-group">
                     <label>Возрастные категории</label>
@@ -199,6 +211,24 @@
         let ageCategoriesBuffer = [];
         let currentCompetitionAgeCategories = [];
         
+        function toggleCustomUnit() {
+            const select = document.getElementById('resultUnit');
+            const customInput = document.getElementById('customUnit');
+            if (select.value === 'custom') {
+                customInput.style.display = 'block';
+            } else {
+                customInput.style.display = 'none';
+            }
+        }
+        
+        function getSelectedUnit() {
+            const select = document.getElementById('resultUnit');
+            if (select.value === 'custom') {
+                return document.getElementById('customUnit').value.trim();
+            }
+            return select.value;
+        }
+        
         function showLoader() {
             document.getElementById('loaderContainer').style.display = 'block';
         }
@@ -263,6 +293,7 @@
                     <div class="competition-card">
                         <div class="competition-title">🏅 ${comp.name}</div>
                         <div class="stats">📅 Дата: ${comp.date} | 📍 ${comp.event_place || '—'} | 👥 Участников: ${participantsCount}</div>
+                        <div class="stats">📏 Ед. измерения: ${comp.result_unit || 'не указана'}</div>
                         <div class="link-box">
                             🔗 Ссылка для РЕГИСТРАЦИИ:<br>
                             <a href="${regLink}" target="_blank">${regLink}</a>
@@ -318,6 +349,7 @@
             const orgHeader = document.getElementById('orgHeader').value.trim();
             const signPosition = document.getElementById('signPosition').value.trim();
             const signName = document.getElementById('signName').value.trim();
+            const resultUnit = getSelectedUnit();
             
             if (!name || !date) { alert('Заполните название и дату'); return; }
             if (ageCategoriesBuffer.length === 0) { alert('Добавьте категорию'); return; }
@@ -330,6 +362,7 @@
                 org_header: orgHeader,
                 sign_position: signPosition,
                 sign_name: signName,
+                result_unit: resultUnit,
                 certificate_page_url: `${BASE_URL}participant.html`,
                 age_categories: ageCategoriesBuffer,
                 created_at: new Date()
@@ -340,6 +373,9 @@
             updateAgeCategoriesDisplay();
             document.getElementById('newCompName').value = '';
             document.getElementById('newCompDate').value = '';
+            document.getElementById('resultUnit').value = '';
+            document.getElementById('customUnit').value = '';
+            document.getElementById('customUnit').style.display = 'none';
             await loadCompetitions();
             hideLoader();
             alert('Соревнование создано!');
@@ -376,7 +412,7 @@
         
         function updateResultsTable() {
             const tbody = document.getElementById('resultsTableBody');
-            if (filteredParticipantsList.length === 0) { tbody.innerHTML = '<tr><td colspan="7">Нет участников в этой категории</td></tr>'; return; }
+            if (filteredParticipantsList.length === 0) { tbody.innerHTML = '<tr><td colspan="7">Нет участников в этой категории</td><tr>'; return; }
             
             tbody.innerHTML = filteredParticipantsList.map(p => {
                 let fullName = p.member1_name || '';
