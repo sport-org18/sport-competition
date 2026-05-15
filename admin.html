@@ -21,6 +21,7 @@
         .btn { padding: 10px 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; margin-right: 10px; margin-top: 10px; }
         .btn-danger { background: #e74c3c; }
         .btn-success { background: #27ae60; }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; }
         .competition-card { border: 1px solid #e0e0e0; border-radius: 10px; padding: 15px; margin-bottom: 15px; background: #fafafa; }
         .competition-title { font-size: 18px; font-weight: bold; color: #333; }
         .stats { font-size: 14px; color: #666; margin-top: 10px; }
@@ -41,11 +42,43 @@
         .link-box-gold { background: #fff8e7; border-left: 3px solid #ffd700; }
         .filter-bar { margin-bottom: 20px; display: flex; gap: 15px; align-items: center; flex-wrap: wrap; }
         .filter-bar select { width: auto; min-width: 200px; }
+        
+        .spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .loader-container {
+            text-align: center;
+            padding: 50px;
+            background: white;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .loading-text {
+            margin-top: 15px;
+            color: #667eea;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>🏆 Панель администратора</h1>
+        
+        <!-- Индикатор загрузки -->
+        <div id="loaderContainer" class="loader-container" style="display: none;">
+            <div class="spinner"></div>
+            <div class="loading-text">⏳ Загрузка данных...</div>
+        </div>
         
         <div class="tab-menu">
             <button class="tab active" onclick="showTab('supabase')">Настройки БД</button>
@@ -166,6 +199,14 @@
         let ageCategoriesBuffer = [];
         let currentCompetitionAgeCategories = [];
         
+        function showLoader() {
+            document.getElementById('loaderContainer').style.display = 'block';
+        }
+        
+        function hideLoader() {
+            document.getElementById('loaderContainer').style.display = 'none';
+        }
+        
         function initSupabase() {
             const url = document.getElementById('supabaseUrl').value.trim();
             const key = document.getElementById('supabaseKey').value.trim();
@@ -196,11 +237,13 @@
         
         async function loadCompetitions() {
             if (!supabaseClient) return;
+            showLoader();
             const { data } = await supabaseClient.from('competitions').select('*').order('created_at', { ascending: false });
             competitionsList = data || [];
             await loadAllParticipants();
             updateCompetitionsList();
             updateCompetitionSelect();
+            hideLoader();
         }
         
         async function loadAllParticipants() {
@@ -236,9 +279,11 @@
         
         async function deleteCompetition(id) {
             if (!confirm('Удалить соревнование?')) return;
+            showLoader();
             await supabaseClient.from('participants').delete().eq('competition_id', id);
             await supabaseClient.from('competitions').delete().eq('id', id);
-            loadCompetitions();
+            await loadCompetitions();
+            hideLoader();
         }
         
         function updateCompetitionSelect() {
@@ -277,6 +322,7 @@
             if (!name || !date) { alert('Заполните название и дату'); return; }
             if (ageCategoriesBuffer.length === 0) { alert('Добавьте категорию'); return; }
             
+            showLoader();
             const newComp = {
                 id: Date.now(),
                 name: name, date: date,
@@ -289,12 +335,13 @@
                 created_at: new Date()
             };
             const { error } = await supabaseClient.from('competitions').insert([newComp]);
-            if (error) { alert('Ошибка: ' + error.message); return; }
+            if (error) { alert('Ошибка: ' + error.message); hideLoader(); return; }
             ageCategoriesBuffer = [];
             updateAgeCategoriesDisplay();
             document.getElementById('newCompName').value = '';
             document.getElementById('newCompDate').value = '';
-            loadCompetitions();
+            await loadCompetitions();
+            hideLoader();
             alert('Соревнование создано!');
         }
         
@@ -302,6 +349,7 @@
             const compId = parseInt(document.getElementById('selectCompetition').value);
             if (!compId) return;
             
+            showLoader();
             const competition = competitionsList.find(c => c.id === compId);
             if (competition && competition.age_categories) {
                 currentCompetitionAgeCategories = competition.age_categories;
@@ -313,6 +361,7 @@
             const { data } = await supabaseClient.from('participants').select('*').eq('competition_id', compId);
             participantsList = data || [];
             filterParticipants();
+            hideLoader();
         }
         
         function filterParticipants() {
