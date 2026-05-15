@@ -78,18 +78,18 @@
         const BACKGROUND_IMG_URL = "https://i.ibb.co/WNG80MfL/0.png";
         
         const Y = {
-            headerStart: 280,        
-            award: 415,             
-            name: 450,              
-            place: 500,             
-            district: 540,          
-            competition: 570,       
-            result: 600,            
-            team: 620,
-            signLabel: 730,         
-            signName: 750,          
-            datePlace1: 730,        
-            datePlace2: 750         
+            headerStart: 240,        
+            award: 380,             
+            name: 420,              
+            place: 470,             
+            district: 510,          
+            competition: 540,       
+            result: 580,            
+            team: 610,
+            signLabel: 700,         
+            signName: 720,          
+            datePlace1: 700,        
+            datePlace2: 720         
         };
         
         let supabaseClient = null;
@@ -183,20 +183,18 @@
             const p = currentParticipant;
             const comp = currentCompetition;
             const placeText = p.place;
-            const nameNominative = p.member1_name || ''; // именительный падеж
+            const nameNominative = p.member1_name || '';
             const formattedDate = formatDate(comp.date);
             const teamText = p.team ? `команда: ${p.team}` : '';
             
-            // Формируем результат с единицей измерения
             let resultText = '';
             if (p.result && p.result.trim() !== '') {
                 const unit = p.result_unit ? ` ${p.result_unit}` : '';
                 resultText = `с результатом ${p.result}${unit}`;
             }
             
-            // Шапка в родительном падеже
-            const orgHeaderText = `Управления культуры, молодёжи и спорта
-муниципального образования «Муниципальный округ Дебёсский район Удмуртской Республики»`;
+            // Шапка в родительном падеже (одна строка для центрирования)
+            const orgHeaderFull = `Управления культуры, молодёжи и спорта муниципального образования «Муниципальный округ Дебёсский район Удмуртской Республики»`;
             
             const img = new Image();
             img.crossOrigin = "Anonymous";
@@ -211,22 +209,17 @@
             
             const centerX = canvas.width / 2;
             
-            // Шапка (по центру)
+            // ШАПКА (одна строка, по центру)
             ctx.font = '20px "Times New Roman", Georgia, serif';
             ctx.fillStyle = '#000000';
             ctx.textAlign = 'center';
-            const headerLines = orgHeaderText.split('\n');
-            let headerY = Y.headerStart;
-            headerLines.forEach(line => {
-                ctx.fillText(line, centerX, headerY);
-                headerY += 28;
-            });
+            ctx.fillText(orgHeaderFull, centerX, Y.headerStart);
             
             // НАГРАЖДАЕТСЯ
             ctx.font = 'bold 28px "Times New Roman", Georgia, serif';
             ctx.fillText('НАГРАЖДАЕТСЯ', centerX, Y.award);
             
-            // Имя (именительный падеж)
+            // Имя
             ctx.font = 'bold 22px "Times New Roman", Georgia, serif';
             ctx.fillText(nameNominative, centerX, Y.name);
             
@@ -254,7 +247,7 @@
                 ctx.fillText(teamText, centerX, Y.team);
             }
             
-            // Начальник и подпись
+            // Начальник
             ctx.font = '20px "Times New Roman", Georgia, serif';
             ctx.textAlign = 'left';
             ctx.fillText('Начальник', 130, Y.signLabel);
