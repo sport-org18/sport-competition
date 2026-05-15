@@ -77,19 +77,20 @@
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjcHlmYmRzbGhpc2ZxcW9idmplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1Mjg1OTAsImV4cCI6MjA5MzEwNDU5MH0.Y4861DLKZ0FG3_rkosf_qH0w5P2F_hdheIBOfTTSmsI";
         const BACKGROUND_IMG_URL = "https://i.ibb.co/WNG80MfL/0.png";
         
+        // КООРДИНАТЫ (отрегулированы под вашу картинку)
         const Y = {
-            headerStart: 200,        
-            award: 340,             
-            name: 380,              
-            place: 430,             
-            district: 470,          
-            competition: 500,       
-            result: 540,            
-            team: 570,
-            signLabel: 660,         
-            signName: 680,          
-            datePlace1: 660,        
-            datePlace2: 680         
+            headerStart: 120,        // шапка (начало)
+            award: 270,              // "НАГРАЖДАЕТСЯ"
+            name: 310,               // имя участника
+            place: 360,              // "за X место"
+            district: 400,           // "в районных соревнованиях"
+            competition: 430,        // название соревнования
+            result: 470,             // результат
+            team: 500,               // команда
+            signLabel: 590,          // "Начальник"
+            signName: 610,           // подпись
+            datePlace1: 590,         // дата
+            datePlace2: 610          // место проведения
         };
         
         let supabaseClient = null;
@@ -193,11 +194,12 @@
                 resultText = `с результатом ${p.result}${unit}`;
             }
             
-            // Шапка в родительном падеже (разбита на строки для центрирования)
+            // ШАПКА (многострочная, строго по центру)
             const headerLines = [
                 'Управления культуры, молодёжи и спорта',
                 'муниципального образования',
-                '«Муниципальный округ Дебёсский район Удмуртской Республики»'
+                '«Муниципальный округ Дебёсский район',
+                'Удмуртской Республики»'
             ];
             
             const img = new Image();
@@ -213,56 +215,58 @@
             
             const centerX = canvas.width / 2;
             
-            // ШАПКА (многострочная, по центру)
-            ctx.font = '20px "Times New Roman", Georgia, serif';
+            // РИСУЕМ ТОЛЬКО ТО, ЧЕГО НЕТ НА ФОНЕ
+            
+            // 1. ШАПКА (по центру)
+            ctx.font = '18px "Times New Roman", Georgia, serif';
             ctx.fillStyle = '#000000';
             ctx.textAlign = 'center';
             let headerY = Y.headerStart;
             for (const line of headerLines) {
                 ctx.fillText(line, centerX, headerY);
-                headerY += 28;
+                headerY += 24;
             }
             
-            // НАГРАЖДАЕТСЯ
-            ctx.font = 'bold 28px "Times New Roman", Georgia, serif';
+            // 2. НАГРАЖДАЕТСЯ
+            ctx.font = 'bold 26px "Times New Roman", Georgia, serif';
             ctx.fillText('НАГРАЖДАЕТСЯ', centerX, Y.award);
             
-            // Имя
+            // 3. ИМЯ
             ctx.font = 'bold 22px "Times New Roman", Georgia, serif';
             ctx.fillText(nameNominative, centerX, Y.name);
             
-            // Место
-            ctx.font = '24px "Times New Roman", Georgia, serif';
+            // 4. МЕСТО
+            ctx.font = '22px "Times New Roman", Georgia, serif';
             ctx.fillText(`за ${placeText} место`, centerX, Y.place);
             
-            // в районных соревнованиях
-            ctx.font = '20px "Times New Roman", Georgia, serif';
+            // 5. В РАЙОННЫХ СОРЕВНОВАНИЯХ
+            ctx.font = '18px "Times New Roman", Georgia, serif';
             ctx.fillText('в районных соревнованиях', centerX, Y.district);
             
-            // Название соревнования
-            ctx.font = 'bold 22px "Times New Roman", Georgia, serif';
+            // 6. НАЗВАНИЕ СОРЕВНОВАНИЯ
+            ctx.font = 'bold 20px "Times New Roman", Georgia, serif';
             ctx.fillText(`«${comp.name}»`, centerX, Y.competition);
             
-            // Результат
+            // 7. РЕЗУЛЬТАТ
             if (resultText) {
-                ctx.font = '20px "Times New Roman", Georgia, serif';
+                ctx.font = '18px "Times New Roman", Georgia, serif';
                 ctx.fillText(resultText, centerX, Y.result);
             }
             
-            // Команда
+            // 8. КОМАНДА
             if (teamText) {
-                ctx.font = '18px "Times New Roman", Georgia, serif';
+                ctx.font = '16px "Times New Roman", Georgia, serif';
                 ctx.fillText(teamText, centerX, Y.team);
             }
             
-            // Начальник
-            ctx.font = '20px "Times New Roman", Georgia, serif';
+            // 9. НАЧАЛЬНИК (слева)
+            ctx.font = '18px "Times New Roman", Georgia, serif';
             ctx.textAlign = 'left';
             ctx.fillText('Начальник', 130, Y.signLabel);
             ctx.fillText('А.С. Дурновцев', 130, Y.signName);
             
-            // Дата и место
-            ctx.font = '20px "Times New Roman", Georgia, serif';
+            // 10. ДАТА И МЕСТО (справа)
+            ctx.font = '16px "Times New Roman", Georgia, serif';
             ctx.textAlign = 'right';
             ctx.fillText(formattedDate, canvas.width - 130, Y.datePlace1);
             ctx.fillText(comp.event_place || '', canvas.width - 130, Y.datePlace2);
