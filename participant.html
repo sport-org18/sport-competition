@@ -102,18 +102,6 @@
                    placeStr === 'I' || placeStr === 'II' || placeStr === 'III';
         }
         
-        function toGenitiveCase(name) {
-            if (!name) return '';
-            const parts = name.trim().split(/\s+/);
-            const genitiveParts = parts.map(part => {
-                if (part.endsWith('а') || part.endsWith('я')) return part;
-                if (part.endsWith('ий')) return part.slice(0, -2) + 'ия';
-                if (part.endsWith('ь')) return part.slice(0, -1) + 'я';
-                return part + 'а';
-            });
-            return genitiveParts.join(' ');
-        }
-        
         function formatDate(dateString) {
             if (!dateString) return '';
             if (dateString.includes('-')) {
@@ -195,14 +183,14 @@
             const p = currentParticipant;
             const comp = currentCompetition;
             const placeText = p.place;
-            const nameGenitive = toGenitiveCase(p.member1_name || '');
+            const nameNominative = p.member1_name || ''; // именительный падеж
             const formattedDate = formatDate(comp.date);
             const teamText = p.team ? `команда: ${p.team}` : '';
             
             // Формируем результат с единицей измерения
             let resultText = '';
             if (p.result && p.result.trim() !== '') {
-                const unit = comp.result_unit ? ` ${comp.result_unit}` : '';
+                const unit = p.result_unit ? ` ${p.result_unit}` : '';
                 resultText = `с результатом ${p.result}${unit}`;
             }
             
@@ -223,6 +211,7 @@
             
             const centerX = canvas.width / 2;
             
+            // Шапка (по центру)
             ctx.font = '20px "Times New Roman", Georgia, serif';
             ctx.fillStyle = '#000000';
             ctx.textAlign = 'center';
@@ -233,35 +222,45 @@
                 headerY += 28;
             });
             
-            ctx.font = 'bold 28px "Times New Roman", Georgia, serif';
-            ctx.fillText('ГРАМОТА', centerX, 240);
-            
+            // НАГРАЖДАЕТСЯ
             ctx.font = 'bold 28px "Times New Roman", Georgia, serif';
             ctx.fillText('НАГРАЖДАЕТСЯ', centerX, Y.award);
+            
+            // Имя (именительный падеж)
             ctx.font = 'bold 22px "Times New Roman", Georgia, serif';
-            ctx.fillText(nameGenitive, centerX, Y.name);
+            ctx.fillText(nameNominative, centerX, Y.name);
+            
+            // Место
             ctx.font = '24px "Times New Roman", Georgia, serif';
             ctx.fillText(`за ${placeText} место`, centerX, Y.place);
+            
+            // в районных соревнованиях
             ctx.font = '20px "Times New Roman", Georgia, serif';
             ctx.fillText('в районных соревнованиях', centerX, Y.district);
+            
+            // Название соревнования
             ctx.font = 'bold 22px "Times New Roman", Georgia, serif';
             ctx.fillText(`«${comp.name}»`, centerX, Y.competition);
             
+            // Результат
             if (resultText) {
                 ctx.font = '20px "Times New Roman", Georgia, serif';
                 ctx.fillText(resultText, centerX, Y.result);
             }
             
+            // Команда
             if (teamText) {
                 ctx.font = '18px "Times New Roman", Georgia, serif';
                 ctx.fillText(teamText, centerX, Y.team);
             }
             
+            // Начальник и подпись
             ctx.font = '20px "Times New Roman", Georgia, serif';
             ctx.textAlign = 'left';
             ctx.fillText('Начальник', 130, Y.signLabel);
             ctx.fillText('А.С. Дурновцев', 130, Y.signName);
             
+            // Дата и место
             ctx.font = '20px "Times New Roman", Georgia, serif';
             ctx.textAlign = 'right';
             ctx.fillText(formattedDate, canvas.width - 130, Y.datePlace1);
