@@ -15,18 +15,50 @@
         label { display: block; margin-bottom: 8px; font-weight: 500; }
         input, select { width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 16px; }
         button { width: 100%; padding: 14px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 10px; font-size: 16px; cursor: pointer; margin-top: 10px; }
+        button:disabled { opacity: 0.6; cursor: not-allowed; }
         .message { margin-top: 20px; padding: 15px; border-radius: 10px; display: none; }
         .success { background: #d4edda; color: #155724; }
         .error { background: #f8d7da; color: #721c24; }
-        .loading { text-align: center; margin: 20px 0; }
+        .loading { text-align: center; margin: 20px 0; display: none; }
         .error-page { text-align: center; padding: 20px; }
         .error-page h2 { color: #e74c3c; }
+        
+        /* Стили для индикатора загрузки */
+        .spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .loading-text {
+            margin-top: 15px;
+            color: #667eea;
+            font-size: 14px;
+        }
+        .loader-container {
+            text-align: center;
+            padding: 30px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
+        <!-- Индикатор загрузки (показывается сначала) -->
+        <div id="loaderContainer" class="loader-container">
+            <div class="spinner"></div>
+            <div class="loading-text">⏳ Загрузка данных соревнования...</div>
+            <div class="loading-text" style="font-size: 12px; color: #999; margin-top: 10px;">Пожалуйста, подождите несколько секунд</div>
+        </div>
+        
         <div id="errorBlock" style="display: none;" class="error-page"><h2>❌ Ошибка</h2><p id="errorMessage"></p></div>
-        <div id="formBlock">
+        <div id="formBlock" style="display: none;">
             <h1>Регистрация на соревнования</h1>
             <div id="compNameDisplay" class="comp-name"></div>
             <form id="registrationForm">
@@ -36,10 +68,13 @@
                 <div class="form-group"><label>Категория</label><input type="text" id="category" readonly placeholder="Определится автоматически"></div>
                 <div class="form-group"><label>Команда/Клуб</label><input type="text" id="team" placeholder="Название команды (если командное соревнование)"></div>
                 <div class="form-group"><label>Соревнование</label><input type="text" id="competition" readonly></div>
-                <button type="submit">Зарегистрироваться</button>
+                <button type="submit" id="submitBtn">Зарегистрироваться</button>
             </form>
             <div id="message" class="message"></div>
-            <div id="loading" class="loading" style="display: none;">⏳ Отправка...</div>
+            <div id="loading" class="loading">
+                <div class="spinner"></div>
+                <div class="loading-text">⏳ Отправка данных...</div>
+            </div>
         </div>
     </div>
     <script>
@@ -55,14 +90,31 @@
         }
         
         async function init() {
+            // Показываем загрузку
+            document.getElementById('loaderContainer').style.display = 'block';
+            
+            // Имитируем небольшую задержку для плавности
+            await new Promise(r => setTimeout(r, 500));
+            
             supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
             const compId = getCompId();
-            if (!compId || isNaN(compId)) { showError('Ссылка недействительна.'); return; }
+            if (!compId || isNaN(compId)) { 
+                document.getElementById('loaderContainer').style.display = 'none';
+                showError('Ссылка недействительна.'); 
+                return; 
+            }
             const { data, error } = await supabaseClient.from('competitions').select('*').eq('id', compId);
-            if (error || !data || data.length === 0) { showError('Соревнование не найдено.'); return; }
+            if (error || !data || data.length === 0) { 
+                document.getElementById('loaderContainer').style.display = 'none';
+                showError('Соревнование не найдено.'); 
+                return; 
+            }
             currentCompetition = data[0];
             document.getElementById('compNameDisplay').innerHTML = `🏆 ${currentCompetition.name}`;
             document.getElementById('competition').value = currentCompetition.name;
+            
+            // Скрываем загрузчик, показываем форму
+            document.getElementById('loaderContainer').style.display = 'none';
             document.getElementById('formBlock').style.display = 'block';
         }
         
@@ -108,21 +160,33 @@
                 certificate_generated: false,
                 result: ''
             };
-            const btn = e.target.querySelector('button');
-            btn.disabled = true;
-            document.getElementById('loading').style.display = 'block';
+            
+            const submitBtn = document.getElementById('submitBtn');
+            const loadingDiv = document.getElementById('loading');
+            const messageDiv = document.getElementById('message');
+            
+            submitBtn.disabled = true;
+            loadingDiv.style.display = 'block';
+            messageDiv.style.display = 'none';
+            
             const { error } = await supabaseClient.from('participants').insert([participant]);
-            btn.disabled = false;
-            document.getElementById('loading').style.display = 'none';
-            if (error) { alert('Ошибка: ' + error.message); return; }
-            document.getElementById('message').className = 'message success';
-            document.getElementById('message').textContent = '✅ Регистрация успешна!';
-            document.getElementById('message').style.display = 'block';
+            
+            submitBtn.disabled = false;
+            loadingDiv.style.display = 'none';
+            
+            if (error) { 
+                messageDiv.className = 'message error';
+                messageDiv.textContent = '❌ Ошибка при регистрации: ' + error.message;
+                messageDiv.style.display = 'block';
+                return; 
+            }
+            messageDiv.className = 'message success';
+            messageDiv.textContent = '✅ Регистрация успешна!';
+            messageDiv.style.display = 'block';
             e.target.reset();
             document.getElementById('competition').value = currentCompetition.name;
         });
         
-        document.getElementById('formBlock').style.display = 'none';
         init();
     </script>
 </body>
