@@ -17,24 +17,58 @@
         label { display: block; margin-bottom: 8px; font-weight: 500; }
         input { width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 16px; }
         button { width: 100%; padding: 14px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 10px; cursor: pointer; font-size: 16px; margin-top: 10px; }
+        button:disabled { opacity: 0.6; cursor: not-allowed; }
         .message { margin-top: 20px; padding: 15px; border-radius: 10px; display: none; }
         .success { background: #d4edda; color: #155724; }
         .error { background: #f8d7da; color: #721c24; }
         .info { background: #d1ecf1; color: #0c5460; }
-        .loading { text-align: center; margin: 20px 0; }
+        .loading { text-align: center; margin: 20px 0; display: none; }
         .error-page { text-align: center; padding: 20px; }
         .error-page h2 { color: #e74c3c; margin-bottom: 15px; }
+        
+        .spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .loading-text {
+            margin-top: 15px;
+            color: #667eea;
+            font-size: 14px;
+        }
+        .loader-container {
+            text-align: center;
+            padding: 30px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
+        <!-- Индикатор загрузки -->
+        <div id="loaderContainer" class="loader-container">
+            <div class="spinner"></div>
+            <div class="loading-text">⏳ Загрузка данных соревнования...</div>
+            <div class="loading-text" style="font-size: 12px; color: #999; margin-top: 10px;">Пожалуйста, подождите несколько секунд</div>
+        </div>
+        
         <div id="errorBlock" style="display: none;" class="error-page"><h2>❌ Ошибка</h2><p id="errorMessage"></p></div>
-        <div id="formBlock">
+        <div id="formBlock" style="display: none;">
             <h1>📄 Получить грамоту</h1>
             <div id="compNameDisplay" class="comp-name"></div>
             <div class="form-group"><label>Введите ваш email</label><input type="email" id="emailInput" placeholder="email@example.com"></div>
-            <button onclick="findParticipant()">Найти грамоту</button>
-            <div id="loading" class="loading" style="display: none;">⏳ Создание грамоты...</div>
+            <button onclick="findParticipant()" id="findBtn">Найти грамоту</button>
+            <div id="loading" class="loading">
+                <div class="spinner"></div>
+                <div class="loading-text">⏳ Поиск и создание грамоты...</div>
+            </div>
             <div id="result" class="message"></div>
         </div>
     </div>
@@ -44,7 +78,6 @@
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjcHlmYmRzbGhpc2ZxcW9idmplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1Mjg1OTAsImV4cCI6MjA5MzEwNDU5MH0.Y4861DLKZ0FG3_rkosf_qH0w5P2F_hdheIBOfTTSmsI";
         const BACKGROUND_IMG_URL = "https://i.ibb.co/WNG80MfL/0.png";
         
-        // ИДЕАЛЬНЫЕ КООРДИНАТЫ
         const Y = {
             headerStart: 280,        
             award: 415,             
@@ -53,7 +86,7 @@
             district: 540,          
             competition: 570,       
             result: 600,            
-            team: 620,              // новая строка для команды
+            team: 620,
             signLabel: 730,         
             signName: 750,          
             datePlace1: 730,        
@@ -90,13 +123,26 @@
         function getCompId() { return parseInt(new URLSearchParams(window.location.search).get('comp')); }
         
         async function init() {
+            document.getElementById('loaderContainer').style.display = 'block';
+            await new Promise(r => setTimeout(r, 500));
+            
             supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
             const compId = getCompId();
-            if (!compId || isNaN(compId)) { showError('Ссылка недействительна.'); return; }
+            if (!compId || isNaN(compId)) { 
+                document.getElementById('loaderContainer').style.display = 'none';
+                showError('Ссылка недействительна.'); 
+                return; 
+            }
             const { data, error } = await supabaseClient.from('competitions').select('*').eq('id', compId);
-            if (error || !data || data.length === 0) { showError('Соревнование не найдено.'); return; }
+            if (error || !data || data.length === 0) { 
+                document.getElementById('loaderContainer').style.display = 'none';
+                showError('Соревнование не найдено.'); 
+                return; 
+            }
             currentCompetition = data[0];
             document.getElementById('compNameDisplay').innerHTML = `🏆 ${currentCompetition.name}`;
+            
+            document.getElementById('loaderContainer').style.display = 'none';
             document.getElementById('formBlock').style.display = 'block';
         }
         
@@ -109,12 +155,29 @@
         async function findParticipant() {
             const email = document.getElementById('emailInput').value.trim();
             if (!email) { alert('Введите email'); return; }
-            document.getElementById('loading').style.display = 'block';
+            
+            const loadingDiv = document.getElementById('loading');
+            const resultDiv = document.getElementById('result');
+            const findBtn = document.getElementById('findBtn');
+            
+            findBtn.disabled = true;
+            loadingDiv.style.display = 'block';
+            resultDiv.style.display = 'none';
+            
             const { data } = await supabaseClient.from('participants').select('*').eq('competition_id', currentCompetition.id).eq('email', email);
-            document.getElementById('loading').style.display = 'none';
-            if (!data || data.length === 0) { showMessage('Участник не найден', 'error'); return; }
+            
+            findBtn.disabled = false;
+            loadingDiv.style.display = 'none';
+            
+            if (!data || data.length === 0) { 
+                showMessage('Участник с таким email не найден', 'error'); 
+                return; 
+            }
             const p = data[0];
-            if (!p.place || p.place === '') { showMessage('Результаты ещё не опубликованы', 'info'); return; }
+            if (!p.place || p.place === '') { 
+                showMessage('Результаты ещё не опубликованы', 'info'); 
+                return; 
+            }
             currentParticipant = p;
             await generateAndDownloadPDF();
         }
@@ -140,7 +203,6 @@
             
             const centerX = canvas.width / 2;
             
-            // 1. ШАПКА
             ctx.font = '20px "Times New Roman", Georgia, serif';
             ctx.fillStyle = '#000000';
             ctx.textAlign = 'center';
@@ -172,7 +234,6 @@
                 ctx.fillText(`с результатом ${p.result}`, centerX, Y.result);
             }
             
-            // Команда (если есть)
             if (teamText) {
                 ctx.font = '18px "Times New Roman", Georgia, serif';
                 ctx.fillText(teamText, centerX, Y.team);
@@ -204,10 +265,8 @@
             div.className = `message ${type}`;
             div.textContent = msg;
             div.style.display = 'block';
-            document.getElementById('loading').style.display = 'none';
         }
         
-        document.getElementById('formBlock').style.display = 'none';
         init();
     </script>
 </body>
