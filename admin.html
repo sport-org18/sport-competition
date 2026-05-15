@@ -31,6 +31,7 @@
         th { background: #f8f9fa; font-weight: 600; }
         .place-input { width: 80px; padding: 5px; }
         .result-input { width: 100px; padding: 5px; }
+        .unit-select { width: 80px; padding: 5px; }
         .status-badge { padding: 3px 8px; border-radius: 12px; font-size: 11px; background: #d4edda; color: #155724; }
         .flex-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
         .message { padding: 15px; border-radius: 10px; margin-top: 20px; display: none; }
@@ -131,19 +132,6 @@
                     <input type="text" id="signName" value="А.С. Дурновцев">
                 </div>
                 <div class="form-group">
-                    <label>Единица измерения результата</label>
-                    <select id="resultUnit" onchange="toggleCustomUnit()">
-                        <option value="">-- не выбрано --</option>
-                        <option value="сек">сек</option>
-                        <option value="мин">мин</option>
-                        <option value="м">м</option>
-                        <option value="км">км</option>
-                        <option value="очки">очки</option>
-                        <option value="custom">другое (ввести вручную)</option>
-                    </select>
-                    <input type="text" id="customUnit" placeholder="введите единицу измерения" style="margin-top: 10px; display: none;">
-                </div>
-                <div class="form-group">
                     <label>Возрастные категории</label>
                     <div class="flex-row" style="margin-bottom: 10px;">
                         <input type="number" id="catMin" placeholder="Мин" style="width: 80px;">
@@ -187,6 +175,7 @@
                                 <th>Категория</th>
                                 <th>Место</th>
                                 <th>Результат</th>
+                                <th>Ед. изм.</th>
                                 <th>Статус</th>
                             </tr>
                         </thead>
@@ -210,24 +199,6 @@
         let filteredParticipantsList = [];
         let ageCategoriesBuffer = [];
         let currentCompetitionAgeCategories = [];
-        
-        function toggleCustomUnit() {
-            const select = document.getElementById('resultUnit');
-            const customInput = document.getElementById('customUnit');
-            if (select.value === 'custom') {
-                customInput.style.display = 'block';
-            } else {
-                customInput.style.display = 'none';
-            }
-        }
-        
-        function getSelectedUnit() {
-            const select = document.getElementById('resultUnit');
-            if (select.value === 'custom') {
-                return document.getElementById('customUnit').value.trim();
-            }
-            return select.value;
-        }
         
         function showLoader() {
             document.getElementById('loaderContainer').style.display = 'block';
@@ -293,7 +264,6 @@
                     <div class="competition-card">
                         <div class="competition-title">🏅 ${comp.name}</div>
                         <div class="stats">📅 Дата: ${comp.date} | 📍 ${comp.event_place || '—'} | 👥 Участников: ${participantsCount}</div>
-                        <div class="stats">📏 Ед. измерения: ${comp.result_unit || 'не указана'}</div>
                         <div class="link-box">
                             🔗 Ссылка для РЕГИСТРАЦИИ:<br>
                             <a href="${regLink}" target="_blank">${regLink}</a>
@@ -349,7 +319,6 @@
             const orgHeader = document.getElementById('orgHeader').value.trim();
             const signPosition = document.getElementById('signPosition').value.trim();
             const signName = document.getElementById('signName').value.trim();
-            const resultUnit = getSelectedUnit();
             
             if (!name || !date) { alert('Заполните название и дату'); return; }
             if (ageCategoriesBuffer.length === 0) { alert('Добавьте категорию'); return; }
@@ -362,7 +331,6 @@
                 org_header: orgHeader,
                 sign_position: signPosition,
                 sign_name: signName,
-                result_unit: resultUnit,
                 certificate_page_url: `${BASE_URL}participant.html`,
                 age_categories: ageCategoriesBuffer,
                 created_at: new Date()
@@ -373,9 +341,6 @@
             updateAgeCategoriesDisplay();
             document.getElementById('newCompName').value = '';
             document.getElementById('newCompDate').value = '';
-            document.getElementById('resultUnit').value = '';
-            document.getElementById('customUnit').value = '';
-            document.getElementById('customUnit').style.display = 'none';
             await loadCompetitions();
             hideLoader();
             alert('Соревнование создано!');
@@ -412,7 +377,7 @@
         
         function updateResultsTable() {
             const tbody = document.getElementById('resultsTableBody');
-            if (filteredParticipantsList.length === 0) { tbody.innerHTML = '<tr><td colspan="7">Нет участников в этой категории</td><tr>'; return; }
+            if (filteredParticipantsList.length === 0) { tbody.innerHTML = '<tr><td colspan="8">Нет участников в этой категории</td></tr>'; return; }
             
             tbody.innerHTML = filteredParticipantsList.map(p => {
                 let fullName = p.member1_name || '';
@@ -427,6 +392,16 @@
                         <td>${p.category || '-'}</td>
                         <td><input type="text" class="place-input" value="${p.place || ''}" placeholder="место" onchange="updatePlace(${p.id}, this.value)"></td>
                         <td><input type="text" class="result-input" value="${p.result || ''}" placeholder="например: 05:34" onchange="updateResult(${p.id}, this.value)"></td>
+                        <td>
+                            <select class="unit-select" data-id="${p.id}" onchange="updateUnit(${p.id}, this.value)">
+                                <option value="">--</option>
+                                <option value="сек" ${p.result_unit === 'сек' ? 'selected' : ''}>сек</option>
+                                <option value="мин" ${p.result_unit === 'мин' ? 'selected' : ''}>мин</option>
+                                <option value="м" ${p.result_unit === 'м' ? 'selected' : ''}>м</option>
+                                <option value="км" ${p.result_unit === 'км' ? 'selected' : ''}>км</option>
+                                <option value="очки" ${p.result_unit === 'очки' ? 'selected' : ''}>очки</option>
+                            </select>
+                        </td>
                         <td><span class="status-badge">${p.place ? '✅ Готово' : '⏳ Ожидает'}</span></td>
                     </tr>
                 `;
@@ -448,14 +423,20 @@
             if (index !== -1) participantsList[index].result = result;
         }
         
+        async function updateUnit(participantId, unit) {
+            await supabaseClient.from('participants').update({ result_unit: unit }).eq('id', participantId);
+            const index = participantsList.findIndex(p => p.id === participantId);
+            if (index !== -1) participantsList[index].result_unit = unit;
+        }
+        
         function exportResultsToCSV() {
-            const headers = ['ФИО', 'Email', 'Команда', 'Категория', 'Место', 'Результат'];
+            const headers = ['ФИО', 'Email', 'Команда', 'Категория', 'Место', 'Результат', 'Ед. изм.'];
             const rows = filteredParticipantsList.map(p => {
                 let fullName = p.member1_name || '';
                 if (p.member2_name && p.member2_name.trim() !== '') {
                     fullName += ' / ' + p.member2_name;
                 }
-                return [fullName, p.email, p.team || '-', p.category || '-', p.place || '-', p.result || '-'];
+                return [fullName, p.email, p.team || '-', p.category || '-', p.place || '-', p.result || '-', p.result_unit || '-'];
             });
             const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
             const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
