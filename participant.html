@@ -78,18 +78,18 @@
         const BACKGROUND_IMG_URL = "https://i.ibb.co/WNG80MfL/0.png";
         
         const Y = {
-            headerStart: 240,        
-            award: 380,             
-            name: 420,              
-            place: 470,             
-            district: 510,          
-            competition: 540,       
-            result: 580,            
-            team: 610,
-            signLabel: 700,         
-            signName: 720,          
-            datePlace1: 700,        
-            datePlace2: 720         
+            headerStart: 200,        
+            award: 340,             
+            name: 380,              
+            place: 430,             
+            district: 470,          
+            competition: 500,       
+            result: 540,            
+            team: 570,
+            signLabel: 660,         
+            signName: 680,          
+            datePlace1: 660,        
+            datePlace2: 680         
         };
         
         let supabaseClient = null;
@@ -193,8 +193,12 @@
                 resultText = `с результатом ${p.result}${unit}`;
             }
             
-            // Шапка в родительном падеже (одна строка для центрирования)
-            const orgHeaderFull = `Управления культуры, молодёжи и спорта муниципального образования «Муниципальный округ Дебёсский район Удмуртской Республики»`;
+            // Шапка в родительном падеже (разбита на строки для центрирования)
+            const headerLines = [
+                'Управления культуры, молодёжи и спорта',
+                'муниципального образования',
+                '«Муниципальный округ Дебёсский район Удмуртской Республики»'
+            ];
             
             const img = new Image();
             img.crossOrigin = "Anonymous";
@@ -209,11 +213,15 @@
             
             const centerX = canvas.width / 2;
             
-            // ШАПКА (одна строка, по центру)
+            // ШАПКА (многострочная, по центру)
             ctx.font = '20px "Times New Roman", Georgia, serif';
             ctx.fillStyle = '#000000';
             ctx.textAlign = 'center';
-            ctx.fillText(orgHeaderFull, centerX, Y.headerStart);
+            let headerY = Y.headerStart;
+            for (const line of headerLines) {
+                ctx.fillText(line, centerX, headerY);
+                headerY += 28;
+            }
             
             // НАГРАЖДАЕТСЯ
             ctx.font = 'bold 28px "Times New Roman", Georgia, serif';
