@@ -22,8 +22,8 @@
         .loading { text-align: center; margin: 20px 0; display: none; }
         .error-page { text-align: center; padding: 20px; }
         .error-page h2 { color: #e74c3c; }
+        .hint { margin-top: 15px; padding: 10px; background: #fff3cd; border-radius: 8px; font-size: 12px; color: #856404; text-align: center; }
         
-        /* Стили для индикатора загрузки */
         .spinner {
             display: inline-block;
             width: 40px;
@@ -46,15 +46,20 @@
             text-align: center;
             padding: 30px;
         }
+        .optional {
+            font-size: 12px;
+            color: #999;
+            margin-left: 8px;
+            font-weight: normal;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- Индикатор загрузки (показывается сначала) -->
         <div id="loaderContainer" class="loader-container">
             <div class="spinner"></div>
             <div class="loading-text">⏳ Загрузка данных соревнования...</div>
-            <div class="loading-text" style="font-size: 12px; color: #999; margin-top: 10px;">Пожалуйста, подождите несколько секунд</div>
+            <div class="loading-text" style="font-size: 12px; color: #999; margin-top: 10px;">Пожалуйста, подождите немного</div>
         </div>
         
         <div id="errorBlock" style="display: none;" class="error-page"><h2>❌ Ошибка</h2><p id="errorMessage"></p></div>
@@ -66,7 +71,10 @@
                 <div class="form-group"><label>Email *</label><input type="email" id="email" required></div>
                 <div class="form-group"><label>Дата рождения *</label><input type="date" id="birthdate" required onchange="calculateCategory()"></div>
                 <div class="form-group"><label>Категория</label><input type="text" id="category" readonly placeholder="Определится автоматически"></div>
-                <div class="form-group"><label>Команда/Клуб</label><input type="text" id="team" placeholder="Название команды (если командное соревнование)"></div>
+                <div class="form-group">
+                    <label>Команда/Клуб <span class="optional">(необязательно)</span></label>
+                    <input type="text" id="team" placeholder="Название команды">
+                </div>
                 <div class="form-group"><label>Соревнование</label><input type="text" id="competition" readonly></div>
                 <button type="submit" id="submitBtn">Зарегистрироваться</button>
             </form>
@@ -75,6 +83,7 @@
                 <div class="spinner"></div>
                 <div class="loading-text">⏳ Отправка данных...</div>
             </div>
+            <div class="hint">⚠️ Пожалуйста, проверьте правильность заполнения данных перед отправкой</div>
         </div>
     </div>
     <script>
@@ -90,10 +99,7 @@
         }
         
         async function init() {
-            // Показываем загрузку
             document.getElementById('loaderContainer').style.display = 'block';
-            
-            // Имитируем небольшую задержку для плавности
             await new Promise(r => setTimeout(r, 500));
             
             supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -113,7 +119,6 @@
             document.getElementById('compNameDisplay').innerHTML = `🏆 ${currentCompetition.name}`;
             document.getElementById('competition').value = currentCompetition.name;
             
-            // Скрываем загрузчик, показываем форму
             document.getElementById('loaderContainer').style.display = 'none';
             document.getElementById('formBlock').style.display = 'block';
         }
@@ -158,7 +163,8 @@
                 place: '',
                 registered_at: new Date().toLocaleString(),
                 certificate_generated: false,
-                result: ''
+                result: '',
+                result_unit: ''
             };
             
             const submitBtn = document.getElementById('submitBtn');
